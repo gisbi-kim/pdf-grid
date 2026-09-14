@@ -5,7 +5,7 @@
 </style></head><body>
 <header><div class="brand">PDF <span>Grid</span></div><div id="filename">여러 페이지를 한눈에, 자유롭게.</div><button class="primary" id="open">PDF 열기 ↗</button><input id="file" type="file" accept="application/pdf,.pdf" hidden></header>
 <div class="toolbar" id="toolbar"><div class="group"><span class="label">격자</span><label>열 <input id="cols" type="number" min="1" max="10" value="2" aria-label="격자 열 수"></label><span>×</span><span>행 <output id="rows" aria-label="자동 행 수">자동</output></span></div><div class="divider"></div><div class="group"><button id="prev" title="이전 행 (←)">←</button><input id="page" type="number" min="1" value="1" aria-label="시작 페이지"><span id="total">/ —</span><button id="next" title="다음 행 (→)">→</button></div><div class="spacer"></div><div class="group"><button id="minus" aria-label="축소">−</button><span id="zoomLabel">100%</span><button id="plus" aria-label="확대">+</button><button id="fit" title="화면 맞춤 (0)">화면 맞춤</button><button id="fullscreen" title="전체 화면">⛶</button></div></div>
-<main id="stage" tabindex="0" aria-label="PDF 작업 영역: 스크롤 이동, Ctrl 또는 Command와 휠로 확대"><div id="world"></div><div id="empty"><div class="welcome"><div class="icon">PDF</div><h1>페이지를 펼쳐 보세요.</h1><p>PDF를 여기에 끌어다 놓으세요.<br>기본 2열로 마지막 페이지까지 펼치고, 스크롤하며 읽으세요.</p><button class="primary" id="openEmpty">파일 선택</button><div class="hints"><span><kbd>휠</kbd> 스크롤</span><span><kbd>드래그</kbd> 이동</span><span><kbd>Ctrl/⌘ + 휠</kbd> 확대·축소</span></div></div></div></main><div id="drop">PDF 파일을 놓아서 열기</div><div id="toast" role="alert"></div><footer><span id="status" role="status">준비됨 · 파일은 이 기기에서만 처리됩니다.</span><span class="footerHint">더블클릭: 해당 페이지 확대 · 0: 화면 맞춤</span></footer>
+<main id="stage" tabindex="0" aria-label="PDF 작업 영역: 스크롤 이동, Ctrl 또는 Command와 휠로 확대"><div id="world"></div><div id="empty"><div class="welcome"><div class="icon">PDF</div><h1>페이지를 펼쳐 보세요.</h1><p>PDF를 여기에 끌어다 놓으세요.<br>기본 2열로 마지막 페이지까지 펼치고, 스크롤하며 읽으세요.</p><button class="primary" id="openEmpty">파일 선택</button><div class="hints"><span><kbd>휠</kbd> 스크롤</span><span><kbd>드래그</kbd> 이동</span><span><kbd>Ctrl/⌘ + 휠</kbd> 확대·축소</span></div></div></div></main><div id="drop">PDF 파일을 놓아서 열기</div><div id="toast" role="alert"></div><footer><span id="status" role="status">준비됨 · 마지막 PDF는 이 브라우저에 저장됩니다.</span><span class="footerHint">더블클릭: 해당 페이지 확대 · 0: 화면 맞춤</span></footer>
 <script>/**
  * @licstart The following is the entire license notice for the
  * JavaScript code in this page
@@ -34,6 +34,45 @@ pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([workerSourc
 const $=id=>document.getElementById(id), stage=$('stage'), world=$('world');
 const GAP=20, PAD=32;
 let doc=null,loadingTask=null,cols=2,scale=1,fitScale=1,cellW=612,cellH=792,items=[],generation=0,loadGeneration=0,drag=null,renderFrame=0,pumping=false,selected=0;
+// Store the original file, never page canvases or PDF passwords.
+let storagePromise=null,activeFileKey=null,viewReady=false,storageWarningShown=false;
+const VIEW_KEY='pdf-grid-view-v1';
+function storageWarning(){if(!storageWarningShown){storageWarningShown=true;notice('브라우저에 저장하지 못했습니다. 현재 PDF는 볼 수 있지만 새로고침 시 복원되지 않을 수 있습니다.')}}
+function savedFileDB(){
+  if(!storagePromise)storagePromise=new Promise((resolve,reject)=>{
+    const request=indexedDB.open('pdf-grid',1);
+    request.onupgradeneeded=()=>request.result.createObjectStore('files');
+    request.onsuccess=()=>{const db=request.result;db.onversionchange=()=>{db.close();storagePromise=null};resolve(db)};
+    request.onerror=()=>reject(request.error);request.onblocked=()=>reject(new Error('Storage blocked'));
+  });
+  return storagePromise;
+}
+function saveView(){
+  if(!doc||!activeFileKey||!viewReady)return;
+  try{localStorage.setItem(VIEW_KEY,JSON.stringify({key:activeFileKey,cols,zoom:scale/fitScale,left:stage.scrollLeft/scale,top:stage.scrollTop/scale}))}catch{storageWarning()}
+}
+async function saveFile(file,key,id){
+  try{
+    const db=await savedFileDB();if(id!==loadGeneration)return;
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction('files','readwrite');tx.objectStore('files').put({file,name:file.name,key},'current');
+      tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);
+    });
+  }catch{if(id===loadGeneration)storageWarning()}
+}
+async function restoreFile(){
+  const id=loadGeneration;
+  try{
+    const db=await savedFileDB();
+    const saved=await new Promise((resolve,reject)=>{const request=db.transaction('files').objectStore('files').get('current');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});
+    if(id!==loadGeneration||!saved?.file)return;
+    let view=null;try{view=JSON.parse(localStorage.getItem(VIEW_KEY));if(view?.key!==saved.key)view=null}catch{}
+    await openFile(new File([saved.file],saved.name,{type:'application/pdf'}),{key:saved.key,view});
+  }catch{if(id===loadGeneration)storageWarning()}
+}
+window.addEventListener('pagehide',saveView);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveView()});
+
 function notice(message){$('toast').textContent=message;clearTimeout(notice.timer);notice.timer=setTimeout(()=>$('toast').textContent='',6000)}
 function currentPage(){return Math.min(doc?.numPages||1,Math.max(1,Math.floor(Math.max(0,stage.scrollTop-PAD)/((cellH+GAP)*scale))*cols+1))}
 function controls(){const n=doc?.numPages||0,start=currentPage();$('prev').disabled=!doc||start<=1;$('next').disabled=!doc||start+cols>n;$('page').disabled=!doc;$('page').value=start;$('page').max=n||1;$('total').textContent='/ '+(n||'—');$('rows').textContent=n?Math.ceil(n/cols):'자동';$('zoomLabel').textContent=Math.round(scale/fitScale*100)+'%'}
@@ -60,7 +99,7 @@ function zoom(factor,cx=stage.clientWidth/2,cy=stage.clientHeight/2){
 }
 function nearby(item,margin=300){return item.left<stage.scrollLeft+stage.clientWidth+margin&&item.left+item.w*scale>stage.scrollLeft-margin&&item.top<stage.scrollTop+stage.clientHeight+margin&&item.top+item.h*scale>stage.scrollTop-margin}
 function release(item){item.task?.cancel();if(item.canvas){item.canvas.remove();item.canvas.width=0;item.canvas.height=0;item.canvas=null}item.rendered=0;if(!item.task&&item.page){item.page.cleanup();item.page=null}}
-function scheduleRender(){if(!renderFrame)renderFrame=requestAnimationFrame(()=>{renderFrame=0;controls();for(const item of items)if(!nearby(item,900))release(item);renderVisible()})}
+function scheduleRender(){if(!renderFrame)renderFrame=requestAnimationFrame(()=>{renderFrame=0;controls();for(const item of items)if(!nearby(item,900))release(item);renderVisible();saveView()})}
 function targetScale(item){return Math.min(scale*item.unitScale*(devicePixelRatio||1),Math.sqrt(6000000/(item.rawW*item.rawH)),4)}
 async function renderVisible(){
   if(pumping||!doc)return;pumping=true;
@@ -103,8 +142,8 @@ async function layout(){
     $('status').textContent=`전체 ${doc.numPages}쪽 · ${cols}열 × ${Math.ceil(doc.numPages/cols)}행 · 스크롤 이동 · Ctrl/⌘ + 휠 확대`;
   }catch(e){if(g===generation)notice('페이지를 불러오지 못했습니다: '+e.message)}
 }
-async function openFile(file){
-  if(!file)return;const id=++loadGeneration;$('status').textContent='PDF를 여는 중…';let task;
+async function openFile(file,restored=null){
+  if(!file)return;saveView();viewReady=false;const id=++loadGeneration;$('status').textContent='PDF를 여는 중…';let task;
   try{
     const data=new Uint8Array(await file.arrayBuffer());if(id!==loadGeneration)return;
     const pending=loadingTask;loadingTask=null;await pending?.destroy();if(id!==loadGeneration)return;
@@ -112,8 +151,15 @@ async function openFile(file){
     task.onPassword=update=>{const pw=prompt('PDF 비밀번호를 입력하세요.');if(pw===null)task.destroy();else update(pw)};
     const nextDoc=await task.promise;if(id!==loadGeneration){await nextDoc.destroy();return}
     loadingTask=null;++generation;items.forEach(release);items=[];const oldDoc=doc;doc=nextDoc;await oldDoc?.destroy();if(id!==loadGeneration)return;
-    $('filename').textContent=file.name;$('empty').style.display='none';stage.classList.add('ready');await layout();stage.focus();
-  }catch(e){if(id===loadGeneration){notice('PDF를 열지 못했습니다: '+e.message);$('status').textContent='다른 PDF를 선택해 주세요.'}}finally{if(loadingTask===task)loadingTask=null}
+    activeFileKey=restored?.key||crypto.randomUUID();
+    if(restored?.view){cols=Math.max(1,Math.min(10,Math.round(Number(restored.view.cols)||2)));$('cols').value=cols}
+    $('filename').textContent=file.name;$('empty').style.display='none';stage.classList.add('ready');await layout();if(id!==loadGeneration)return;
+    if(restored?.view){
+      const view=restored.view,zoom=Number(view.zoom);scale=fitScale*Math.max(.15,Math.min(16,Number.isFinite(zoom)?zoom:1));position();
+      stage.scrollLeft=Math.max(0,Number(view.left)||0)*scale;stage.scrollTop=Math.max(0,Number(view.top)||0)*scale;controls();scheduleRender();
+    }
+    viewReady=true;saveView();if(!restored)saveFile(file,activeFileKey,id);stage.focus();
+  }catch(e){if(id===loadGeneration){viewReady=!!doc;notice('PDF를 열지 못했습니다: '+e.message);$('status').textContent='다른 PDF를 선택해 주세요.'}}finally{if(loadingTask===task)loadingTask=null}
 }
 $('open').onclick=$('openEmpty').onclick=()=>$('file').click();$('file').onchange=e=>{openFile(e.target.files[0]);e.target.value=''};
 $('cols').onchange=()=>{const page=currentPage();cols=Math.max(1,Math.min(10,Math.round(Number($('cols').value)||2)));$('cols').value=cols;fit();go(page);if(doc)$('status').textContent=`전체 ${doc.numPages}쪽 · ${cols}열 × ${Math.ceil(doc.numPages/cols)}행 · 스크롤 이동 · Ctrl/⌘ + 휠 확대`};
@@ -127,6 +173,6 @@ stage.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;
 function endDrag(){if(!drag)return;stage.classList.remove('dragging');scheduleRender();setTimeout(()=>drag=null,0)}stage.addEventListener('pointerup',endDrag);stage.addEventListener('pointercancel',endDrag);
 document.addEventListener('keydown',e=>{if(e.target.matches('input')||e.ctrlKey||e.metaKey||e.altKey)return;if(e.key==='ArrowRight'){e.preventDefault();go(currentPage()+cols)}else if(e.key==='ArrowLeft'){e.preventDefault();go(currentPage()-cols)}else if(e.key==='0')fit();else if(e.key==='+'||e.key==='=')zoom(1.25);else if(e.key==='-')zoom(1/1.25)});
 let dragDepth=0;window.addEventListener('dragenter',e=>{e.preventDefault();dragDepth++;$('drop').style.display='flex'});window.addEventListener('dragover',e=>e.preventDefault());window.addEventListener('dragleave',()=>{if(--dragDepth<=0){dragDepth=0;$('drop').style.display='none'}});window.addEventListener('drop',e=>{e.preventDefault();dragDepth=0;$('drop').style.display='none';openFile(e.dataTransfer.files[0])});
-new ResizeObserver(()=>{stage.style.top=$('toolbar').getBoundingClientRect().bottom+'px';if(doc)fit()}).observe($('toolbar'));window.addEventListener('resize',()=>{if(doc)fit()});controls();
+new ResizeObserver(()=>{stage.style.top=$('toolbar').getBoundingClientRect().bottom+'px';if(doc)fit()}).observe($('toolbar'));window.addEventListener('resize',()=>{if(doc)fit()});controls();restoreFile();
 
 </script></body></html>
