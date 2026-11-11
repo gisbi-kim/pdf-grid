@@ -80,6 +80,18 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 function notice(message){$('toast').textContent=message;clearTimeout(notice.timer);notice.timer=setTimeout(()=>$('toast').textContent='',6000)}
 function currentPage(){return Math.min(doc?.numPages||1,Math.max(1,Math.floor(Math.max(0,stage.scrollTop-PAD)/((cellH+GAP)*scale))*cols+1))}
 function controls(){const n=doc?.numPages||0,start=currentPage();$('prev').disabled=!doc||start<=1;$('next').disabled=!doc||start+cols>n;$('page').disabled=!doc;$('page').value=start;$('page').max=n||1;$('total').textContent='/ '+(n||'—');$('rows').textContent=n?Math.ceil(n/cols):'자동';$('zoomLabel').textContent=Math.round(scale/fitScale*100)+'%'}
+// Viewport controls used by the embedded grid toolbar. All PDF pages stay in the grid.
+function gridViewportState(){
+  const visible=(stage.clientHeight-PAD*2+GAP*scale)/((cellH+GAP)*scale);
+  return {ready:!!doc,columns:cols,rows:doc?Math.max(1,Math.min(10,Math.floor(visible+1e-6))):1};
+}
+function minimumGridScale(){return Math.min(fitScale*.15,Math.max(.01,(stage.clientHeight-PAD*2)/(10*cellH+9*GAP)))}
+function setGridViewportRows(value){
+  if(!doc)return;
+  const count=Math.max(1,Math.min(10,Math.round(Number(value)||1))),anchor=currentPage();
+  scale=Math.max(.01,(stage.clientHeight-PAD*2)/(count*cellH+(count-1)*GAP));
+  position();go(anchor);saveView();
+}
 function position(){
   const gridW=(cols*cellW+(cols-1)*GAP)*scale;
   const offset=Math.max(PAD,(stage.clientWidth-gridW)/2);
@@ -97,7 +109,7 @@ function zoom(factor,cx=stage.clientWidth/2,cy=stage.clientHeight/2){
   if(!doc)return;
   const old=scale,oldOffset=Math.max(PAD,(stage.clientWidth-(cols*cellW+(cols-1)*GAP)*old)/2);
   const wx=(stage.scrollLeft+cx-oldOffset)/old,wy=(stage.scrollTop+cy-PAD)/old;
-  scale=Math.max(fitScale*.15,Math.min(fitScale*16,scale*factor));position();
+  scale=Math.max(minimumGridScale(),Math.min(fitScale*16,scale*factor));position();
   const offset=Math.max(PAD,(stage.clientWidth-(cols*cellW+(cols-1)*GAP)*scale)/2);
   stage.scrollLeft=wx*scale+offset-cx;stage.scrollTop=wy*scale+PAD-cy;scheduleRender();if(searchMatches.length)requestAnimationFrame(centerSearchMatch);
 }
@@ -159,7 +171,7 @@ async function openFile(file,restored=null){
     if(restored?.view){cols=Math.max(1,Math.min(10,Math.round(Number(restored.view.cols)||2)));$('cols').value=cols}
     $('filename').textContent=file.name;$('empty').style.display='none';stage.classList.add('ready');await layout();if(id!==loadGeneration)return;
     if(restored?.view){
-      const view=restored.view,zoom=Number(view.zoom);scale=fitScale*Math.max(.15,Math.min(16,Number.isFinite(zoom)?zoom:1));position();
+      const view=restored.view,zoom=Number(view.zoom);scale=fitScale*Math.max(minimumGridScale()/fitScale,Math.min(16,Number.isFinite(zoom)?zoom:1));position();
       stage.scrollLeft=Math.max(0,Number(view.left)||0)*scale;stage.scrollTop=Math.max(0,Number(view.top)||0)*scale;controls();scheduleRender();
     }
     clearSearch();searchCache=new Map();if($('searchInput').value.trim())runSearch();viewReady=true;saveView();if(!restored)saveFile(file,activeFileKey,id);stage.focus();

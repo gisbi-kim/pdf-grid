@@ -3,6 +3,52 @@ const $ = id => document.getElementById(id);
 const lib = window.PDFLib, core = window.PDFGridTools;
 let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab = 'merge', busy = false;
 const MAX_BYTES = 100 * 1024 * 1024;
+const GRID_VIEWER_URL = '../?v=grid-steps-1';
+function addGridSteppers(view) {
+  const frame = $('gridFrame').contentWindow;
+  const columns = view.getElementById('cols');
+  const totalRows = view.getElementById('rows');
+  const gridGroup = columns.closest('.group');
+  const rowInput = view.createElement('input');
+  rowInput.type = 'number'; rowInput.min = '1'; rowInput.max = '10'; rowInput.value = '1'; rowInput.id = 'screenRows';
+  rowInput.setAttribute('aria-label', '화면에 보이는 행 수');
+  rowInput.title = '한 화면에 맞출 행 수. 전체 페이지는 아래로 계속 이어집니다.';
+  function stepper(labelText, input, onChange) {
+    const box = view.createElement('div'); box.className = 'gridStepper';
+    const label = view.createElement('label'); label.htmlFor = input.id; label.textContent = labelText;
+    const less = view.createElement('button'), more = view.createElement('button');
+    less.type = more.type = 'button'; less.textContent = '−'; more.textContent = '+';
+    less.setAttribute('aria-label', `${labelText} 줄이기`); more.setAttribute('aria-label', `${labelText} 늘리기`);
+    less.title = `${labelText} 줄이기`; more.title = `${labelText} 늘리기`;
+    const change = delta => { input.value = Math.max(1, Math.min(10, (Number(input.value) || 1) + delta)); onChange(); sync(); };
+    less.onclick = () => change(-1); more.onclick = () => change(1);
+    box.append(label, less, input, more);
+    return {box, input, less, more};
+  }
+  const colStep = stepper('열', columns, () => columns.dispatchEvent(new frame.Event('change', {bubbles:true})));
+  const applyRows = () => { frame.setGridViewportRows(Number(rowInput.value)); sync(); };
+  const rowStep = stepper('화면 행', rowInput, applyRows);
+  rowInput.onchange = applyRows;
+  totalRows.hidden = true;
+  gridGroup.replaceChildren(colStep.box, rowStep.box, totalRows);
+  gridGroup.classList.add('gridDimensions');
+  function sync() {
+    const state = frame.gridViewportState();
+    rowInput.value = state.rows;
+    rowInput.disabled = !state.ready;
+    colStep.less.disabled = Number(columns.value) <= 1;
+    colStep.more.disabled = Number(columns.value) >= 10;
+    rowStep.less.disabled = !state.ready || state.rows <= 1;
+    rowStep.more.disabled = !state.ready || state.rows >= 10;
+  }
+  sync();
+  const observer = new MutationObserver(sync);
+  observer.observe(view.getElementById('zoomLabel'), {childList:true});
+  observer.observe(totalRows, {childList:true});
+  columns.addEventListener('change', sync);
+}
+
+
 // Only the viewer embedded in DEV gets this layout. Moving the existing nodes
 // preserves the viewer's file-open handlers and filename updates.
 function compactGridViewer() {
@@ -26,6 +72,13 @@ function compactGridViewer() {
     .embeddedGrid button { padding:7px 9px; font-size:12px }
     .embeddedGrid input[type=number] { width:44px; padding:6px; font-size:12px }
     .embeddedGrid #page { width:48px }
+    .embeddedGrid .gridDimensions { gap:12px }
+    .embeddedGrid .gridStepper { display:flex; align-items:center; gap:4px; white-space:nowrap }
+    .embeddedGrid .gridStepper label { margin-right:3px; color:#bdc7cf }
+    .embeddedGrid .gridStepper button { width:28px; min-height:30px; padding:4px; font-size:16px; line-height:20px }
+    .embeddedGrid .gridStepper input { width:36px; text-align:center; appearance:textfield }
+    .embeddedGrid .gridStepper input::-webkit-inner-spin-button, .embeddedGrid .gridStepper input::-webkit-outer-spin-button { appearance:none; margin:0 }
+
     .embeddedGrid .divider, .embeddedGrid .spacer { display:none }
     .embeddedGrid .toolbar > .group > .label { display:none }
     .embeddedGrid .documentGroup { flex:0 1 230px; min-width:160px }
@@ -47,6 +100,7 @@ function compactGridViewer() {
     }
   `;
   view.head.append(style);
+  addGridSteppers(view);
   const labelFilename = () => { filename.title = filename.textContent; };
   labelFilename();
   new MutationObserver(labelFilename).observe(filename, {childList:true, characterData:true, subtree:true});
@@ -64,7 +118,7 @@ function setTab(name) {
   $('feedback').hidden = readingOnly;
   window.scrollTo(0, 0);
   if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
-  if (name === 'viewer' && !$('gridFrame').getAttribute('src')) $('gridFrame').src = '../';
+  if (name === 'viewer' && !$('gridFrame').getAttribute('src')) $('gridFrame').src = GRID_VIEWER_URL;
   $('viewer').style.top = document.querySelector('nav').getBoundingClientRect().bottom + 'px';
 }
 async function run(task) {
@@ -151,7 +205,7 @@ function showResults(files) {
 async function preview(file) {
   const frame = $('gridFrame');
   if (!frame.contentWindow?.openFile) {
-    await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('뷰어를 불러오지 못했습니다. PDF를 다운로드해 확인해 주세요.')), 20000); frame.addEventListener('load', () => { clearTimeout(timer); resolve(); }, {once: true}); if (!frame.getAttribute('src')) frame.src = '../'; });
+    await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('뷰어를 불러오지 못했습니다. PDF를 다운로드해 확인해 주세요.')), 20000); frame.addEventListener('load', () => { clearTimeout(timer); resolve(); }, {once: true}); if (!frame.getAttribute('src')) frame.src = GRID_VIEWER_URL; });
   }
   setTab('viewer'); await frame.contentWindow.openFile(new File([file.bytes], file.name, {type: 'application/pdf'}));
 }
