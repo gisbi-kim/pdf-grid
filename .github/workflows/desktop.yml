@@ -24,6 +24,7 @@ jobs:
         shell: pwsh
         run: |
           python desktop/prepare.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Copy-Item "$(go env GOROOT)/LICENSE" desktop/web/LICENSE-GO.txt
           node dev/tests/core.test.cjs
       - name: Test and build Windows executables
@@ -33,6 +34,7 @@ jobs:
           go test ./...
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           go run tools/icon.go
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           go run github.com/tc-hib/go-winres@v0.3.3 make --in winres.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $env:CGO_ENABLED='0'

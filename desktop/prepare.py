@@ -9,6 +9,6 @@ for name in ['index.html', 'LICENSE-PDFJS.txt']:
     shutil.copy2(root / name, out / name)
 shutil.copytree(root / 'dev', out / 'dev', ignore=shutil.ignore_patterns('tests', 'README.md'))
 for page in [out / 'index.html', out / 'dev' / 'index.html']:
-    text = page.read_text()
-    page.write_text(text.replace('</body>', '<script src="/_local/runtime.js"></script></body>'))
+    text = page.read_text(encoding="utf-8")
+    page.write_text(text.replace('</body>', '<script src="/_local/runtime.js"></script></body>'), encoding="utf-8")
 print('Staged self-contained browser assets')
