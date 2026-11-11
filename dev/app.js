@@ -3,6 +3,56 @@ const $ = id => document.getElementById(id);
 const lib = window.PDFLib, core = window.PDFGridTools;
 let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab = 'merge', busy = false;
 const MAX_BYTES = 100 * 1024 * 1024;
+// Only the viewer embedded in DEV gets this layout. Moving the existing nodes
+// preserves the viewer's file-open handlers and filename updates.
+function compactGridViewer() {
+  const view = $('gridFrame').contentDocument;
+  if (!view || view.documentElement.classList.contains('embeddedGrid')) return;
+  const toolbar = view.getElementById('toolbar');
+  const filename = view.getElementById('filename');
+  const open = view.getElementById('open');
+  const file = view.getElementById('file');
+  if (!toolbar || !filename || !open || !file) return;
+  const group = view.createElement('div');
+  group.className = 'group documentGroup';
+  group.append(filename, open, file);
+  toolbar.prepend(group);
+  view.documentElement.classList.add('embeddedGrid');
+  const style = view.createElement('style');
+  style.textContent = `
+    .embeddedGrid header { display:none }
+    .embeddedGrid .toolbar { min-height:54px; padding:8px 14px; gap:10px; flex-wrap:wrap }
+    .embeddedGrid .group { gap:6px; font-size:12px; flex-shrink:0 }
+    .embeddedGrid button { padding:7px 9px; font-size:12px }
+    .embeddedGrid input[type=number] { width:44px; padding:6px; font-size:12px }
+    .embeddedGrid #page { width:48px }
+    .embeddedGrid .divider, .embeddedGrid .spacer { display:none }
+    .embeddedGrid .toolbar > .group > .label { display:none }
+    .embeddedGrid .documentGroup { flex:0 1 230px; min-width:160px }
+    .embeddedGrid #filename { flex:1; min-width:0; font-size:12px; max-width:200px }
+    .embeddedGrid #open { flex-shrink:0 }
+    .embeddedGrid .searchGroup { flex:1 1 260px; min-width:230px; width:auto; flex-wrap:nowrap }
+    .embeddedGrid .searchGroup input { flex:1; width:140px; min-width:80px; padding:6px; font-size:12px }
+    .embeddedGrid #searchCount { min-width:40px; max-width:96px; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+    .embeddedGrid #zoomLabel { width:42px }
+    @media(max-width:1050px) {
+      .embeddedGrid .documentGroup { flex:1 1 230px }
+      .embeddedGrid .searchGroup { flex:1 1 290px }
+    }
+    @media(max-width:600px) {
+      .embeddedGrid .toolbar { padding:8px 10px; gap:8px }
+      .embeddedGrid .documentGroup { flex:1 1 100% }
+      .embeddedGrid #filename { max-width:none }
+      .embeddedGrid .searchGroup { flex-basis:100% }
+    }
+  `;
+  view.head.append(style);
+  const labelFilename = () => { filename.title = filename.textContent; };
+  labelFilename();
+  new MutationObserver(labelFilename).observe(filename, {childList:true, characterData:true, subtree:true});
+}
+$('gridFrame').addEventListener('load', compactGridViewer);
+
 function message(text, error = false) { $('feedback').textContent = text; $('feedback').classList.toggle('error', error); }
 function clearResults() { outputURLs.forEach(url => URL.revokeObjectURL(url)); outputURLs = []; outputs = []; $('results').hidden = true; $('resultList').replaceChildren(); }
 function setTab(name) {
