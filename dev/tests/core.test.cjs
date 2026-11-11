@@ -1,0 +1,27 @@
+const assert = require('node:assert/strict');
+const lib = require('../vendor/pdf-lib.min.js');
+const zipLib = require('../vendor/jszip.min.js');
+const core = require('../core.js');
+(async () => {
+  assert.deepEqual(core.parsePages('1-3, 5, 2', 5), [0,1,2,4,1]);
+  assert.deepEqual(core.parsePages('', 2), [0,1]);
+  for (const value of ['0', '3-1', '6', '1,', '1.5', '-1', '1-6', 'NaN']) assert.throws(() => core.parsePages(value, 5));
+  assert.deepEqual(core.splitGroups('1-2; 4, 3', 4, false), [[0,1],[3,2]]);
+  assert.deepEqual(core.splitGroups('', 3, true), [[0],[1],[2]]);
+  assert.throws(() => core.splitGroups('1;', 3, false));
+  const a = await lib.PDFDocument.create();
+  a.addPage([300,400]); a.addPage([500,600]).setRotation(lib.degrees(90));
+  const b = await lib.PDFDocument.create(); b.addPage([700,800]);
+  const aa = await a.save(), bb = await b.save(), original = aa.slice();
+  const merged = await lib.PDFDocument.load(await core.combine([{bytes:bb},{bytes:aa,range:'2, 1'}],lib));
+  assert.deepEqual(merged.getPages().map(p=>p.getSize()), [{width:700,height:800},{width:500,height:600},{width:300,height:400}]);
+  assert.equal(merged.getPage(1).getRotation().angle,90);
+  assert.deepEqual(aa,original);
+  const part = await core.extract(aa,[1,0,1],lib), parsed = await lib.PDFDocument.load(part);
+  assert.equal(parsed.getPageCount(),3); assert.equal(parsed.getPage(2).getRotation().angle,90);
+  await assert.rejects(core.extract(aa,[2],lib));
+  await assert.rejects(core.loadPDF(new Uint8Array([1,2,3]),lib));
+  const zip = new zipLib(); zip.file('part.pdf',part); const reopened=await zipLib.loadAsync(await zip.generateAsync({type:'uint8array'}));
+  assert.equal((await lib.PDFDocument.load(await reopened.file('part.pdf').async('uint8array'))).getPageCount(),3);
+  console.log('PASS: range validation, split groups, page order, dimensions, rotation, immutable input, invalid files and ZIP round trip.');
+})().catch(error => {console.error(error);process.exitCode=1});
