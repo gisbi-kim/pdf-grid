@@ -5,6 +5,10 @@
 <header><a class="brand" href="../">PDF <span>Grid</span></a><span class="badge">DEV</span><span class="headerNote">PDF를 읽고, 필요한 만큼 정리하세요.</span><a class="original" href="../">기존 뷰어 ↗</a></header>
 <nav aria-label="PDF 도구"><button data-tab="merge" aria-pressed="true">PDF 합치기</button><button data-tab="split" aria-pressed="false">PDF 분리하기</button><button data-tab="viewer" aria-pressed="false">격자 보기</button><span>파일은 서버로 전송되지 않습니다.</span></nav>
 <main id="workspace">
+<section id="desktopDownload" class="desktopDownload" aria-label="오프라인 앱 다운로드">
+<div><span class="badge">OFFLINE</span><h2>인터넷 없이, 내 컴퓨터에서.</h2><p>한 번 설치하면 바탕화면의 PDF Grid 아이콘으로 실행합니다.<br>브라우저가 열리지만, 보기·합치기·분리하기는 모두 내 PC에서 처리됩니다.</p><small>Windows 10/11 · 64비트 · Python·Node 설치 불필요</small></div>
+<div class="desktopActions"><a class="desktopButton" href="https://github.com/gisbi-kim/pdf-grid/releases/latest/download/PDF-Grid-Setup.exe">Windows 앱 다운로드 ↓</a><span>다운로드 → 설치 파일 실행 → 바탕화면 아이콘</span><a class="portableLink" href="https://github.com/gisbi-kim/pdf-grid/releases/latest/download/PDF-Grid-Portable.exe">설치 없이 쓰는 단일 EXE</a></div>
+</section>
 <section id="merge" class="panel">
 <div class="intro"><div><p class="eyebrow">여러 파일을 한 권으로</p><h1>순서대로 모아, 하나의 PDF로.</h1><p class="muted">PDF를 추가하고 순서를 정하세요. 파일마다 필요한 쪽만 골라도 됩니다.</p></div><button id="mergeDemo" class="ghost">샘플로 체험하기 ↗</button></div>
 <div class="dropzone" id="mergeDrop"><div class="fileIcon">＋</div><strong>여기에 PDF 파일을 놓으세요</strong><p>여러 파일을 한 번에 선택할 수 있습니다.</p><button id="mergeChoose" class="primary">PDF 파일 추가</button><input id="mergeFiles" type="file" accept="application/pdf,.pdf" multiple hidden></div>

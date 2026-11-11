@@ -9,7 +9,7 @@ function setTab(name) {
   activeTab = name;
   for (const tab of document.querySelectorAll('[data-tab]')) tab.setAttribute('aria-pressed', String(tab.dataset.tab === name));
   for (const id of ['merge', 'split', 'viewer']) $(id).hidden = id !== name;
-  $('toolFooter').hidden = name === 'viewer'; $('results').hidden = name === 'viewer' || !outputs.length;
+  $('desktopDownload').hidden = name === 'viewer' || !!document.getElementById('localRuntimeBar'); $('toolFooter').hidden = name === 'viewer'; $('results').hidden = name === 'viewer' || !outputs.length;
   $('feedback').hidden = name === 'viewer';
   if (name === 'viewer' && !$('gridFrame').getAttribute('src')) $('gridFrame').src = '../';
   $('viewer').style.top = document.querySelector('nav').getBoundingClientRect().bottom + 'px';
