@@ -109,7 +109,6 @@ const runtimeJS = `(function(){
  const token=%s, version=%s;
  const send=(path)=>fetch('/_local/'+path,{method:'POST',headers:{'X-PDF-Grid-Token':token}});
  send('ping'); const heartbeat=setInterval(()=>send('ping').catch(()=>{}),30000);
- const download=document.getElementById('desktopDownload');if(download)download.hidden=true;
  if(window.top!==window)return;
  const bar=document.createElement('div');bar.id='localRuntimeBar';bar.style.cssText='position:fixed;bottom:12px;right:16px;z-index:1000;display:flex;align-items:center;gap:12px;background:#202b21;color:#c7f481;border:1px solid #64794d;padding:10px 14px;border-radius:10px;font:12px sans-serif;box-shadow:0 3px 16px #0005';
  const label=document.createElement('span');label.textContent='● 로컬 실행 중 · '+version+' · 인터넷 불필요';

@@ -3,12 +3,9 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>PDF Grid Dev — 합치기·분리하기</title><link rel="stylesheet" href="style.css"><script defer src="vendor/pdf-lib.min.js"></script><script defer src="vendor/jszip.min.js"></script><script defer src="core.js"></script><script defer src="app.js"></script></head>
 <body>
 <header><a class="brand" href="../">PDF <span>Grid</span></a><span class="badge">DEV</span><span class="headerNote">PDF를 읽고, 필요한 만큼 정리하세요.</span><a class="original" href="../">기존 뷰어 ↗</a></header>
-<nav aria-label="PDF 도구"><button data-tab="merge" aria-pressed="true">PDF 합치기</button><button data-tab="split" aria-pressed="false">PDF 분리하기</button><button data-tab="viewer" aria-pressed="false">격자 보기</button><span>파일은 서버로 전송되지 않습니다.</span></nav>
+<nav aria-label="PDF 도구"><button data-tab="merge" aria-pressed="true">PDF 합치기</button><button data-tab="split" aria-pressed="false">PDF 분리하기</button><button data-tab="viewer" aria-pressed="false">격자 보기</button><button data-tab="local" aria-pressed="false">로컬 버전 안내</button><span>파일은 서버로 전송되지 않습니다.</span></nav>
 <main id="workspace">
-<section id="desktopDownload" class="desktopDownload" aria-label="오프라인 앱 다운로드">
-<div><span class="badge">OFFLINE</span><h2>인터넷 없이, 내 컴퓨터에서.</h2><p>한 번 설치하면 바탕화면의 PDF Grid 아이콘으로 실행합니다.<br>브라우저가 열리지만, 보기·합치기·분리하기는 모두 내 PC에서 처리됩니다.</p><small>Windows 10/11 · 64비트 · Python·Node 설치 불필요</small></div>
-<div class="desktopActions"><a class="desktopButton" href="https://github.com/gisbi-kim/pdf-grid/releases/latest/download/PDF-Grid-Setup.exe">Windows 앱 다운로드 ↓</a><span>다운로드 → 설치 파일 실행 → 바탕화면 아이콘</span><a class="portableLink" href="https://github.com/gisbi-kim/pdf-grid/releases/latest/download/PDF-Grid-Portable.exe">설치 없이 쓰는 단일 EXE</a></div>
-</section>
+
 <section id="merge" class="panel">
 <div class="intro"><div><p class="eyebrow">여러 파일을 한 권으로</p><h1>순서대로 모아, 하나의 PDF로.</h1><p class="muted">PDF를 추가하고 순서를 정하세요. 파일마다 필요한 쪽만 골라도 됩니다.</p></div><button id="mergeDemo" class="ghost">샘플로 체험하기 ↗</button></div>
 <div class="dropzone" id="mergeDrop"><div class="fileIcon">＋</div><strong>여기에 PDF 파일을 놓으세요</strong><p>여러 파일을 한 번에 선택할 수 있습니다.</p><button id="mergeChoose" class="primary">PDF 파일 추가</button><input id="mergeFiles" type="file" accept="application/pdf,.pdf" multiple hidden></div>
@@ -22,6 +19,21 @@
 <div class="actionbar"><div><strong id="splitSummary">파일을 선택해 주세요</strong><p>입력한 쪽 순서대로 저장합니다. 선택하지 않은 쪽은 결과에서 제외됩니다.</p></div><button id="splitRun" class="primary" disabled>분리한 PDF 만들기 →</button></div>
 </section>
 <section id="viewer" hidden><iframe id="gridFrame" title="PDF Grid 격자 뷰어"></iframe></section>
+<section id="local" class="panel localGuide" hidden aria-label="로컬 버전 안내">
+<section id="desktopDownload" class="desktopDownload" aria-label="오프라인 앱 다운로드">
+<div><span class="badge">OFFLINE</span><h1>인터넷 없이, 내 컴퓨터에서.</h1><p>한 번 설치하면 바탕화면의 PDF Grid 아이콘으로 실행합니다.<br>브라우저가 열리지만, 보기·합치기·분리하기는 모두 내 PC에서 처리됩니다.</p><small>Windows 10/11 · 64비트 · Python·Node 설치 불필요</small></div>
+<div class="desktopActions"><a class="desktopButton" href="https://github.com/gisbi-kim/pdf-grid/releases/latest/download/PDF-Grid-Setup.exe">Windows 앱 다운로드 ↓</a><span>다운로드 → 설치 파일 실행 → 바탕화면 아이콘</span><a class="portableLink" href="https://github.com/gisbi-kim/pdf-grid/releases/latest/download/PDF-Grid-Portable.exe">설치 없이 쓰는 단일 EXE</a></div>
+</section>
+<div class="guideSteps"><h2>이렇게 시작하세요</h2><ol>
+<li><strong>설치 파일을 내려받으세요.</strong><p>위의 Windows 앱 다운로드 버튼을 누릅니다. 처음 내려받을 때만 인터넷 연결이 필요합니다.</p></li>
+<li><strong>설치 파일을 한 번 실행하세요.</strong><p>필요한 파일이 함께 설치되고, 바탕화면에 PDF Grid 바로가기가 만들어집니다. 설치가 끝나면 기본 브라우저에서 앱이 열립니다.</p></li>
+<li><strong>다음부터는 바탕화면 아이콘을 누르세요.</strong><p>인터넷 연결 없이 PDF를 열고, 합치고, 분리할 수 있습니다. 결과 파일은 PDF 또는 ZIP으로 저장합니다.</p></li>
+</ol></div>
+<div class="guideDetails"><article><h2>브라우저가 열리는데, 왜 로컬 앱인가요?</h2><p>브라우저는 화면과 파일 처리에 사용됩니다. 앱 실행에 필요한 파일은 컴퓨터에 들어 있고, 화면은 내 PC 주소인 <code>127.0.0.1</code>에서 열립니다. PDF 내용은 외부 서버로 전송되지 않습니다.</p></article>
+<article><h2>설치 없이 쓰고 싶다면</h2><p><strong>설치 없이 쓰는 단일 EXE</strong>를 내려받아 원하는 폴더에 보관하세요. 이 파일을 실행하면 같은 기능을 사용할 수 있습니다. 바탕화면 바로가기는 자동으로 만들지 않습니다.</p></article>
+<article><h2>종료하거나 업데이트하려면</h2><p>결과 파일을 저장한 뒤 화면 오른쪽 아래의 <strong>앱 종료</strong>를 누르세요. 새 버전을 쓰려면 실행 중인 앱을 종료하고 최신 설치 파일을 다시 실행하면 됩니다.</p></article>
+<article><h2>지원 환경</h2><p>Windows 10/11 64비트용입니다. Python이나 Node를 따로 설치할 필요가 없습니다. 현재 배포 파일은 서명되지 않아 Windows에서 게시자 확인 안내가 표시될 수 있습니다.</p></article></div>
+</section>
 <div id="feedback" role="status" aria-live="polite"></div>
 <section id="results" hidden aria-label="완성된 파일"><div class="resultHeading"><div><p class="eyebrow">완료</p><h2 id="resultTitle">파일이 준비되었습니다.</h2></div><button id="downloadAll" class="primary" hidden>모두 ZIP으로 받기 ↓</button></div><div id="resultList"></div></section>
 <footer id="toolFooter"><span>브라우저 안에서 처리 · 원본 파일 유지</span><span>DEV · 합치기 / 분리하기 체험판</span><p>일반 PDF의 페이지 편집용입니다. 문서 북마크·전자서명·입력 폼의 기능은 결과에 유지되지 않을 수 있습니다.</p></footer>

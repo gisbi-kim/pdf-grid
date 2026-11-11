@@ -8,9 +8,12 @@ function clearResults() { outputURLs.forEach(url => URL.revokeObjectURL(url)); o
 function setTab(name) {
   activeTab = name;
   for (const tab of document.querySelectorAll('[data-tab]')) tab.setAttribute('aria-pressed', String(tab.dataset.tab === name));
-  for (const id of ['merge', 'split', 'viewer']) $(id).hidden = id !== name;
-  $('desktopDownload').hidden = name === 'viewer' || !!document.getElementById('localRuntimeBar'); $('toolFooter').hidden = name === 'viewer'; $('results').hidden = name === 'viewer' || !outputs.length;
-  $('feedback').hidden = name === 'viewer';
+  for (const id of ['merge', 'split', 'viewer', 'local']) $(id).hidden = id !== name;
+  const readingOnly = name === 'viewer' || name === 'local';
+  $('toolFooter').hidden = readingOnly; $('results').hidden = readingOnly || !outputs.length;
+  $('feedback').hidden = readingOnly;
+  window.scrollTo(0, 0);
+  if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
   if (name === 'viewer' && !$('gridFrame').getAttribute('src')) $('gridFrame').src = '../';
   $('viewer').style.top = document.querySelector('nav').getBoundingClientRect().bottom + 'px';
 }
@@ -143,3 +146,6 @@ for (const [id, target] of [['mergeDrop', 'merge'], ['splitDrop', 'split']]) {
 window.addEventListener('dragover', event => event.preventDefault()); window.addEventListener('drop', event => event.preventDefault());
 window.addEventListener('resize', () => { $('viewer').style.top = document.querySelector('nav').getBoundingClientRect().bottom + 'px'; });
 if (!lib || !core || !window.JSZip) { message('PDF 도구를 불러오지 못했습니다. 페이지를 새로고침해 주세요.', true); document.querySelectorAll('button').forEach(el => el.disabled = true); } else refresh();
+
+window.addEventListener('hashchange', () => { if (!busy && ['merge', 'split', 'viewer', 'local'].includes(location.hash.slice(1))) setTab(location.hash.slice(1)); });
+setTab(['merge', 'split', 'viewer', 'local'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'merge');
