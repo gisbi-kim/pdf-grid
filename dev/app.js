@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const lib = window.PDFLib, core = window.PDFGridTools;
 let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab = 'merge', busy = false;
 const MAX_BYTES = 100 * 1024 * 1024;
-const GRID_VIEWER_URL = '../?v=grid-steps-1';
+const GRID_VIEWER_URL = '../?v=touch-zoom-1';
 function addGridSteppers(view) {
   const frame = $('gridFrame').contentWindow;
   const columns = view.getElementById('cols');

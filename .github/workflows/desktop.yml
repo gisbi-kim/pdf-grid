@@ -26,7 +26,7 @@ jobs:
           python desktop/prepare.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Copy-Item "$(go env GOROOT)/LICENSE" desktop/web/LICENSE-GO.txt
-          node dev/tests/core.test.cjs
+          node --test dev/tests/core.test.cjs dev/tests/touch.test.cjs
       - name: Test and build Windows executables
         working-directory: desktop
         shell: pwsh
