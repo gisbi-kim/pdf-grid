@@ -103,7 +103,8 @@ Function CheckClosed
  Pop $1
  ${If} $0 == 10
   MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "PDF Grid가 실행 중입니다. 결과 파일을 저장하고 모든 PDF Grid 창을 닫은 뒤 '다시 시도'를 눌러 주세요." IDRETRY retry
-  Abort
+  SetErrorLevel 2
+  Quit
  ${ElseIf} $0 != 0
   MessageBox MB_ICONSTOP "실행 중인 앱을 확인하지 못했습니다. PowerShell 실행이 가능한지 확인해 주세요."
   Abort
