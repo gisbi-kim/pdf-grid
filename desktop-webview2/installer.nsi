@@ -96,7 +96,7 @@ Function CheckClosed
  ; a running viewer, which could contain unsaved merge/split results.
  System::Call 'kernel32::SetEnvironmentVariable(t"PDFGRID_INSTALL_DIR",t"$INSTDIR")'
  ${DisableX64FSRedirection}
- nsExec::ExecToStack '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -Command "$$p=Get-Process -ErrorAction SilentlyContinue | Where-Object { $$_.Path -and ([IO.Path]::GetDirectoryName($$_.Path) -eq $$env:PDFGRID_INSTALL_DIR) -and (($$_.ProcessName -eq $\"PDF Grid$\") -or ($$_.ProcessName -eq $\"PDF-Grid$\")) }; if ($$p) { exit 10 } else { exit 0 }"'
+ nsExec::ExecToStack `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -Command "$$p=Get-Process -Name 'PDF Grid','PDF-Grid' -ErrorAction SilentlyContinue | Where-Object { $$_.Path -and ([IO.Path]::GetDirectoryName($$_.Path) -eq $$env:PDFGRID_INSTALL_DIR) }; if ($$p) { exit 10 } else { exit 0 }"`
  ${EnableX64FSRedirection}
  Pop $0
  Pop $1

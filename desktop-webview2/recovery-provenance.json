@@ -1,0 +1,29 @@
+{
+  "sourceArchive": "PDFGrid.zip",
+  "sourceInstallerSHA256": "d4b2bc8429fe5bbf02ae191451fa25dd68207b5ff7ab63f90c5f57acb7dc0e5e",
+  "sourceAsarSHA256": "2033d6a6e5e35b711feea43faaa5dc31c8dde53f57fa4aefe2ee866626860558",
+  "originalVersion": "1.3.3",
+  "originalUninstallRegistryGUID": "88d3b172-4c13-5732-a92d-3c1735225b00",
+  "recoveredFiles": {
+    "main.cjs": "d6bcc1e51442f19c59bf368990e788e29b95a04989a56c6ec05d82faf455fb6d",
+    "package.json": "4d7244ff8f2c3879b8aa72c1ce84ea7e4107f76b964671a978850108a92c5209",
+    "pdf-grid.ico": "97852718c8c73947cef396b27baae3e79d3191df63c795e87507b61d36428bff",
+    "preload.cjs": "e9fa8c89a13bba74f3a7230309575a01b79699d5826e0fa5a49fdeb4eab0c0fa",
+    "web/LICENSE-PDFJS.txt": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+    "web/dev/README.md": "82ef560aacd287329268e3accb2319069b639b8743649e2b3e8f922d71aa1981",
+    "web/dev/app.js": "3c967c457ff9222c16c982391f54d2ab23c82c139eaf3e702e64747640b6d7f2",
+    "web/dev/core.js": "fa47655f1d194a7da26fc0ed8afc9b7a0c6b51eff81f07566708ee39d84092f8",
+    "web/dev/index.html": "61bbfb1140454b4707557d86a773a61faf644d624419376457255d012cca1197",
+    "web/dev/style.css": "20a7960c32bcdd3b83101b27529b992edd687b0114e685c462c23180be9132b4",
+    "web/dev/tests/core.test.cjs": "cadbf685e9e23187d98d2e00268d65d8ec7907452fad785bb614dcdf3479b442",
+    "web/dev/tests/touch.test.cjs": "61f593d0ddbba53be5622f03711aaf1477054444b689906752a6c70da1dac2d2",
+    "web/dev/vendor/LICENSE-jszip.md": "566c953c6090b1218ca6217dd7359d45dde46581968586dc607d59a78af6a9c4",
+    "web/dev/vendor/LICENSE-pdf-lib.md": "f2c9fc00fdb66eb99ac156ba52d734af66d8d309f65753ae809ad34ee2883bcb",
+    "web/dev/vendor/jszip.min.js": "acc7e41455a80765b5fd9c7ee1b8078a6d160bbbca455aeae854de65c947d59e",
+    "web/dev/vendor/pdf-lib.min.js": "0f9a5cad07941f0826586c94e089d89b918c46e5c17cf2d5a3c6f666e3bc694f",
+    "web/index.html": "87a6b4235220fbad5c302f40147d2ca2ad40d761a46e4cf097c97208132864a8"
+  },
+  "changesToBrowserAssets": [
+    "web/dev/index.html: inject local bridge before deferred application scripts; PDF processing assets unchanged"
+  ]
+}

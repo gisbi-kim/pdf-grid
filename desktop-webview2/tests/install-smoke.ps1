@@ -33,7 +33,13 @@ $setup=(Resolve-Path './PDF-Grid-Desktop-Setup-1.4.0.exe').Path
 $target=Join-Path $env:LOCALAPPDATA 'Programs/pdf-grid-desktop'
 $key='HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\88d3b172-4c13-5732-a92d-3c1735225b00'
 $p=Start-Process $setup -ArgumentList '/S' -PassThru
-if(!$p.WaitForExit(60000) -or $p.ExitCode -ne 0){throw 'First install failed'}
+for($i=0;$i -lt 120;$i++){
+ if($p.HasExited){break}
+ $dialog=[WinDialog]::Find($p.Id,1)
+ if($dialog -ne [IntPtr]::Zero){$content=[WinDialog]::Children($dialog);if($content){Write-Host "Unexpected silent-install dialog: $content"}}
+ Start-Sleep -Milliseconds 250
+}
+if(!$p.HasExited -or $p.ExitCode -ne 0){throw 'First install failed'}
 if(!(Test-Path "$target/PDF-Grid.exe")){throw 'Missing installed executable'}
 $before=(Get-FileHash "$target/PDF-Grid.exe").Hash
 # Existing version prompts even if setup is invoked with /S.

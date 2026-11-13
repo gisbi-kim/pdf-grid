@@ -27,7 +27,7 @@ func showError(message string) {
 }
 func runWindow(a *app, profile, url string) error {
 	log.Print("Creating WebView2 window")
-	w := webview.NewWithOptions(webview.WebViewOptions{DataPath: filepath.Join(profile, "Profile"), AutoFocus: true, WindowOptions: webview.WindowOptions{Title: "PDF Grid", Width: 1280, Height: 850, Center: true, IconId: 1}})
+	w := webview.NewWithOptions(webview.WebViewOptions{DataPath: filepath.Join(profile, "Profile"), Debug: os.Getenv("PDFGRID_DIAGNOSTICS") == "1", AutoFocus: true, WindowOptions: webview.WindowOptions{Title: "PDF Grid", Width: 1280, Height: 850, Center: true, IconId: 1}})
 	if w == nil {
 		return fmt.Errorf("Microsoft Edge WebView2 Runtime이 필요합니다. https://developer.microsoft.com/microsoft-edge/webview2 에서 Evergreen Runtime을 설치한 뒤 다시 실행해 주세요.")
 	}

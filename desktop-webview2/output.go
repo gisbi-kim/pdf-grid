@@ -10,7 +10,7 @@ func validOutputName(name string) bool {
 	if ext != ".pdf" && ext != ".zip" {
 		return false
 	}
-	if len(name) == 0 || len(name) > 240 || strings.TrimSpace(name) != name {
+	if len(name) == 0 || len(name) > 1024 || strings.TrimSpace(name) != name {
 		return false
 	}
 	for _, r := range name {

@@ -6,14 +6,14 @@ const assert=require('node:assert/strict');
 (async()=>{
  const exe=path.resolve(process.argv[2]||'PDF-Grid.exe');
  const started=Date.now();
- const app=spawn(exe,[],{env:{...process.env,WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:'--remote-debugging-port=9223 --remote-allow-origins=*'},stdio:'ignore'});
- let browser;
+ const app=spawn(exe,[],{env:{...process.env,PDFGRID_DIAGNOSTICS:'1',WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:'--remote-debugging-port=9223 --remote-allow-origins=*'},stdio:'ignore'});
+ let browser,connectionError;
  try{
   for(let i=0;i<100;i++){
    if(app.exitCode!==null)throw new Error('Native app exited: '+app.exitCode);
-   try{browser=await chromium.connectOverCDP('http://127.0.0.1:9223');break}catch{await new Promise(r=>setTimeout(r,200))}
+   try{browser=await chromium.connectOverCDP('http://127.0.0.1:9223');break}catch(error){connectionError=error;await new Promise(r=>setTimeout(r,200))}
   }
-  assert(browser,'WebView2 did not expose a running window');
+  assert(browser,'WebView2 connection failed: '+connectionError);
   const context=browser.contexts()[0];let page;
   for(let i=0;i<100;i++){
    page=context.pages().find(p=>p.url().includes('49383/dev/'));
@@ -59,7 +59,7 @@ const assert=require('node:assert/strict');
   fs.writeFileSync('tests/startup.json',JSON.stringify({nativeViewerReadyMs:latency,mergedPages:merged,splitFiles:2,clipboard:true,nativeSave:true,secondInstancePDF:true},null,2));
   console.log('PASS native WebView2: merge, split, clipboard and second-instance Korean PDF open');
  }catch(error){
-  console.log(execFileSync('powershell.exe',['-NoProfile','-Command',`Get-Process | Where-Object { $_.ProcessName -match 'PDF|webview|msedge' } | Select-Object ProcessName,Id,MainWindowTitle | Format-Table -AutoSize; Get-ChildItem "$env:ProgramFiles (x86)/Microsoft/EdgeWebView/Application" -ErrorAction SilentlyContinue; Get-Content "$env:LOCALAPPDATA/PDFGridWebView/startup.log" -ErrorAction SilentlyContinue`],{encoding:'utf8'}));
+  console.log(execFileSync('powershell.exe',['-NoProfile','-Command',`Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'msedgewebview2' } | Select-Object Name,CommandLine | Format-List; Get-Process | Where-Object { $_.ProcessName -match 'PDF|webview|msedge' } | Select-Object ProcessName,Id,MainWindowTitle | Format-Table -AutoSize; Get-ChildItem "$env:ProgramFiles (x86)/Microsoft/EdgeWebView/Application" -ErrorAction SilentlyContinue; Get-Content "$env:LOCALAPPDATA/PDFGridWebView/startup.log" -ErrorAction SilentlyContinue`],{encoding:'utf8'}));
   throw error;
  }finally{if(browser)await browser.close();app.kill()}
 })().catch(e=>{console.error(e);process.exitCode=1});
