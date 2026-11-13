@@ -11,7 +11,7 @@
    await until(()=>!document.querySelector('#results').hidden);
    const link=document.querySelector('#resultList a.download');const bytes=new Uint8Array(await(await fetch(link.href)).arrayBuffer());
    if((await PDFLib.PDFDocument.load(bytes)).getPageCount()!==5)throw new Error('Merged page count');
-   if(!await pdfGridDesktop.saveResult('merged.pdf',bytes))throw new Error('Native save cancelled');
+   if(!await pdfGridDesktop.saveResult(window.nativeTestFilename,bytes))throw new Error('Native save cancelled');
    document.querySelector('[data-tab="split"]').click();document.querySelector('#splitDemo').click();
    await until(()=>!document.querySelector('#splitRun').disabled);document.querySelector('#splitRun').click();
    await until(()=>document.querySelectorAll('#resultList a.download').length===2);

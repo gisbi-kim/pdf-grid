@@ -30,10 +30,11 @@ for($n=0;$n -lt 300;$n++){
  if($dialog -ne [IntPtr]::Zero){
   Write-Host "Native save dialog: $([SaveDialog]::Text($dialog))"
   $edit=[SaveDialog]::Edit($dialog)
-  if($edit -ne [IntPtr]::Zero){
-   [SaveDialog]::SetWindowText($edit,$Destination)|Out-Null
+  if($edit -ne [IntPtr]::Zero -and [SaveDialog]::Text($edit) -eq [IO.Path]::GetFileName($Destination)){
+   # Accept the real dialog's default filename and Downloads folder. The native
+   # test verifies the resulting PDF bytes at that path after completion.
    [SaveDialog]::PostMessage([SaveDialog]::GetDlgItem($dialog,1),0xF5,[IntPtr]::Zero,[IntPtr]::Zero)|Out-Null
-   Write-Host "Selected save path: $Destination"
+   Write-Host "Accepted default native save path: $Destination"
    exit 0
   }
  }

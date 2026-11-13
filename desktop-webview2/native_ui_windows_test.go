@@ -5,8 +5,10 @@ package main
 import (
 	_ "embed"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	webview "github.com/jchv/go-webview2"
+	"golang.org/x/sys/windows"
 	"net"
 	"net/http"
 	"os"
@@ -54,7 +56,13 @@ func TestNativeUI(t *testing.T) {
 	server := &http.Server{Handler: a.handler()}
 	go server.Serve(listener)
 	defer server.Close()
-	dest := filepath.Join(t.TempDir(), "saved-test.pdf")
+	downloads, err := windows.KnownFolderPath(windows.FOLDERID_Downloads, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	filename := "pdfgrid-native-test-" + a.token[:8] + ".pdf"
+	dest := filepath.Join(downloads, filename)
+	t.Cleanup(func() { os.Remove(dest) })
 	driver := exec.Command("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "tests/save-dialog.ps1", "-AppPid", strconv.Itoa(os.Getpid()), "-Destination", dest)
 	driver.Stdout = os.Stdout
 	driver.Stderr = os.Stderr
@@ -90,6 +98,8 @@ func TestNativeUI(t *testing.T) {
 			return fmt.Errorf("Unknown stage")
 		})
 		w.Bind("nativeTestDone", func(message string) { result <- message; w.Terminate() })
+		nameJSON, _ := json.Marshal(filename)
+		w.Init("window.nativeTestFilename=" + string(nameJSON))
 		w.Init(nativeSmokeJS)
 		go func() {
 			select {
