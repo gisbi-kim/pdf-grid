@@ -56,6 +56,12 @@ Function .onInit
  IfFileExists "$OldLocation\Uninstall.exe" 0 +3
   StrCpy $OldUninstaller "$OldLocation\Uninstall.exe"
   StrCpy $OldType "webview"
+ ${If} $OldVersion == ""
+ ${AndIf} $OldType == ""
+ ${AndIf} ${FileExists} "$LOCALAPPDATA\PDFGrid\PDF-Grid.exe"
+  StrCpy $OldLocation "$LOCALAPPDATA\PDFGrid"
+  StrCpy $OldType "go"
+ ${EndIf}
  ${If} $OldVersion != ""
  ${OrIf} $OldType != ""
  ${OrIf} ${FileExists} "$OldLocation\PDF Grid.exe"
@@ -72,7 +78,12 @@ Function .onInit
   StrCpy $INSTDIR $OldLocation
  ${EndIf}
  ; Legacy per-machine installs require their own administrator uninstaller.
+ SetRegView 64
  ReadRegStr $0 HKLM "${KEY}" "UninstallString"
+ SetRegView 32
+ ${If} $0 == ""
+  ReadRegStr $0 HKLM "${KEY}" "UninstallString"
+ ${EndIf}
  ${If} $0 != ""
   MessageBox MB_ICONSTOP "관리자 권한으로 설치된 이전 PDF Grid가 있습니다. Windows 설정의 '설치된 앱'에서 이전 버전을 제거한 뒤 이 설치 프로그램을 다시 실행해 주세요."
   Abort
