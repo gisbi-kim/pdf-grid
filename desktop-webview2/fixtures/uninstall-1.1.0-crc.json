@@ -1,15 +1,8 @@
 {
   "originalInstallerSHA256": "74a4d95db7c7cdc11edae702d8ba0c07b77a1ed3cb9f775cb4d8056e93735eb6",
   "originalUninstallerSHA256": "94b62f74d0229d84ef4ab13ee03bcbed29a3299dc3ab2c97314ff9c32619a22a",
-  "fixedUninstallerSHA256": "2ba61284c66b62987a7412bf0a2226940db76f4d7a0e8bad798119389b4e1a07",
   "originalCRC32": "0e68a969",
-  "computedAndCorrectedCRC32": "456ea5df",
   "length": 140060,
-  "changedOffsets": [
-    140056,
-    140057,
-    140058,
-    140059
-  ],
-  "change": "Only the final four CRC bytes are corrected. Executable code, resources and NSIS removal script are unchanged."
+  "change": "Diagnostic evidence only. The 1.4.1 force option does not execute or patch this uninstaller; it deletes only allowlisted application files and rebuilds registration.",
+  "computedCRC32": "456ea5df"
 }
