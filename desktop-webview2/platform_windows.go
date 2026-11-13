@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	webview "github.com/jchv/go-webview2"
+	"golang.org/x/sys/windows"
 	"image/png"
 	"log"
 	"os"
@@ -25,6 +26,10 @@ func showError(message string) {
 	text, _ := syscall.UTF16PtrFromString(message)
 	user32.NewProc("MessageBoxW").Call(0, uintptr(unsafe.Pointer(text)), uintptr(unsafe.Pointer(title)), 0x10)
 }
+
+// Assigned only by native integration tests; production leaves it nil.
+var windowTestHook func(webview.WebView)
+
 func runWindow(a *app, profile, url string) error {
 	log.Print("Creating WebView2 window")
 	w := webview.NewWithOptions(webview.WebViewOptions{DataPath: filepath.Join(profile, "Profile"), Debug: os.Getenv("PDFGRID_DIAGNOSTICS") == "1", AutoFocus: true, WindowOptions: webview.WindowOptions{Title: "PDF Grid", Width: 1280, Height: 850, Center: true, IconId: 1}})
@@ -88,6 +93,9 @@ func runWindow(a *app, profile, url string) error {
 	}
 	a.mu.Unlock()
 	defer func() { a.mu.Lock(); a.notify = nil; a.mu.Unlock() }()
+	if windowTestHook != nil {
+		windowTestHook(w)
+	}
 	w.Navigate(url)
 	w.Run()
 	return nil
@@ -128,7 +136,11 @@ func chooseSave(hwnd uintptr, name string) (string, error) {
 	filter = append(filter, 0)
 	title, _ := syscall.UTF16PtrFromString("PDF Grid — 파일 저장")
 	ext, _ := syscall.UTF16PtrFromString(strings.TrimPrefix(filepath.Ext(name), "."))
-	dialog := openFileName{Owner: hwnd, Filter: &filter[0], FilterIndex: 1, File: &buffer[0], MaxFile: uint32(len(buffer)), Title: title, DefaultExtension: ext, Flags: 0x00080000 | 0x00000002 | 0x00000800 | 0x00000008}
+	var initialDir *uint16
+	if downloads, err := windows.KnownFolderPath(windows.FOLDERID_Downloads, 0); err == nil {
+		initialDir, _ = syscall.UTF16PtrFromString(downloads)
+	}
+	dialog := openFileName{InitialDir: initialDir, Owner: hwnd, Filter: &filter[0], FilterIndex: 1, File: &buffer[0], MaxFile: uint32(len(buffer)), Title: title, DefaultExtension: ext, Flags: 0x00080000 | 0x00000002 | 0x00000800 | 0x00000008}
 	dialog.Size = uint32(unsafe.Sizeof(dialog))
 	ok, _, _ := syscall.NewLazyDLL("comdlg32.dll").NewProc("GetSaveFileNameW").Call(uintptr(unsafe.Pointer(&dialog)))
 	if ok == 0 {

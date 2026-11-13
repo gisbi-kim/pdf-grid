@@ -35,13 +35,12 @@ jobs:
           choco install nsis -y --no-progress
           & 'C:/Program Files (x86)/NSIS/makensis.exe' installer.nsi
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm ci --prefix tests
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Exercise native WebView2 and desktop features
         shell: pwsh
         working-directory: desktop-webview2
         run: |
-          node tests/ui-smoke.cjs
+          $env:PDFGRID_NATIVE_TEST='1'
+          go test -run TestNativeUI -v -timeout 120s
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Exercise installer confirmations and replacement
         if: always()

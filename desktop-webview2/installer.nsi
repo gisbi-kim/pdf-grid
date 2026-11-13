@@ -1,4 +1,4 @@
-Unicode true
+﻿Unicode true
 !include "LogicLib.nsh"
 !include "x64.nsh"
 !include "FileFunc.nsh"
