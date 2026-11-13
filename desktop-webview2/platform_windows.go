@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	webview "github.com/jchv/go-webview2"
 	"golang.org/x/sys/windows"
@@ -40,35 +41,27 @@ func runWindow(a *app, profile, url string) error {
 	defer w.Destroy()
 	w.SetSize(640, 450, webview.HintMin)
 	hwnd := uintptr(w.Window())
-	if err := w.Bind("nativeSave", func(token, name string, data []byte) (bool, error) {
+	if err := w.Bind("nativeSave", func(token, requestID, name string, data []byte) error {
 		if token != a.token {
-			return false, fmt.Errorf("Unauthorized")
+			return fmt.Errorf("Unauthorized")
 		}
-		if !validOutputName(name) || len(data) > 200*1024*1024 {
-			return false, fmt.Errorf("저장할 파일 형식이 올바르지 않습니다.")
+		if len(requestID) == 0 || len(requestID) > 80 || !validOutputName(name) || len(data) > 200*1024*1024 {
+			return fmt.Errorf("저장할 파일 형식이 올바르지 않습니다.")
 		}
-		dest, err := chooseSave(hwnd, name)
-		if err != nil || dest == "" {
-			return false, err
-		}
-		// Write beside the chosen file, then replace only after every byte is written.
-		temp, err := os.CreateTemp(filepath.Dir(dest), ".pdfgrid-*")
-		if err != nil {
-			return false, err
-		}
-		defer os.Remove(temp.Name())
-		_, writeErr := temp.Write(data)
-		closeErr := temp.Close()
-		if writeErr != nil {
-			return false, writeErr
-		}
-		if closeErr != nil {
-			return false, closeErr
-		}
-		if err = os.Rename(temp.Name(), dest); err != nil {
-			return false, err
-		}
-		return true, nil
+		// WebView2 forbids synchronous modal UI inside WebMessageReceived. Post the
+		// dialog until after the callback returns; the JS promise is already registered.
+		// https://learn.microsoft.com/microsoft-edge/webview2/concepts/threading-model
+		w.Dispatch(func() {
+			saved, err := saveWithDialog(hwnd, name, data)
+			message := ""
+			if err != nil {
+				message = err.Error()
+			}
+			idJSON, _ := json.Marshal(requestID)
+			errorJSON, _ := json.Marshal(message)
+			w.Eval(fmt.Sprintf("window.__pdfGridSaveResult(%s,%t,%s)", idJSON, saved, errorJSON))
+		})
+		return nil
 	}); err != nil {
 		return err
 	}
@@ -99,6 +92,30 @@ func runWindow(a *app, profile, url string) error {
 	w.Navigate(url)
 	w.Run()
 	return nil
+}
+
+func saveWithDialog(hwnd uintptr, name string, data []byte) (bool, error) {
+	dest, err := chooseSave(hwnd, name)
+	if err != nil || dest == "" {
+		return false, err
+	}
+	temp, err := os.CreateTemp(filepath.Dir(dest), ".pdfgrid-*")
+	if err != nil {
+		return false, err
+	}
+	defer os.Remove(temp.Name())
+	_, writeErr := temp.Write(data)
+	closeErr := temp.Close()
+	if writeErr != nil {
+		return false, writeErr
+	}
+	if closeErr != nil {
+		return false, closeErr
+	}
+	if err := os.Rename(temp.Name(), dest); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // OPENFILENAMEW (Windows x64 ABI).

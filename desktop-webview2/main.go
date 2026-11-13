@@ -142,8 +142,10 @@ const bridgeJS = `(function(){
  const token='%s';
  const encode=bytes=>{let s='';for(let i=0;i<bytes.length;i+=32768)s+=String.fromCharCode(...bytes.subarray(i,i+32768));return btoa(s)};
  const decode=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+ const saves=new Map();
+ window.__pdfGridSaveResult=(id,saved,error)=>{const p=saves.get(id);if(!p)return;saves.delete(id);if(error)p.reject(new Error(error));else p.resolve(saved)};
  window.pdfGridDesktop=Object.freeze({
- saveResult:(name,bytes)=>window.nativeSave(token,name,encode(bytes)),
+ saveResult:(name,bytes)=>new Promise((resolve,reject)=>{const id=crypto.randomUUID();saves.set(id,{resolve,reject});window.nativeSave(token,id,name,encode(bytes)).catch(error=>{saves.delete(id);reject(error)})}),
  copyPDFImage:bytes=>window.nativeCopy(token,encode(bytes)),
  getStartupPDF:async()=>{const f=await window.nativeNext(token);return f?{name:f.name,bytes:decode(f.bytes)}:null},
  onPDFOpenRequested:callback=>window.addEventListener('pdf-open-requested',callback)
