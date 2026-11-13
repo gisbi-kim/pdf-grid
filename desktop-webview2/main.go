@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -176,6 +177,12 @@ func main() {
 		showError(e.Error())
 		return
 	}
+	logFile, logErr := os.OpenFile(filepath.Join(profile, "startup.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
+	if logErr == nil {
+		defer logFile.Close()
+		log.SetOutput(logFile)
+	}
+	log.Printf("Starting PDF Grid %s", version)
 	listener, e := net.Listen("tcp4", address)
 	if e != nil {
 		client := &http.Client{Timeout: 3 * time.Second, Transport: &http.Transport{Proxy: nil}}

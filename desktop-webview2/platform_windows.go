@@ -8,6 +8,7 @@ import (
 	"fmt"
 	webview "github.com/jchv/go-webview2"
 	"image/png"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,15 +20,18 @@ var user32 = syscall.NewLazyDLL("user32.dll")
 var kernel32 = syscall.NewLazyDLL("kernel32.dll")
 
 func showError(message string) {
+	log.Print(message)
 	title, _ := syscall.UTF16PtrFromString("PDF Grid")
 	text, _ := syscall.UTF16PtrFromString(message)
 	user32.NewProc("MessageBoxW").Call(0, uintptr(unsafe.Pointer(text)), uintptr(unsafe.Pointer(title)), 0x10)
 }
 func runWindow(a *app, profile, url string) error {
+	log.Print("Creating WebView2 window")
 	w := webview.NewWithOptions(webview.WebViewOptions{DataPath: filepath.Join(profile, "Profile"), AutoFocus: true, WindowOptions: webview.WindowOptions{Title: "PDF Grid", Width: 1280, Height: 850, Center: true, IconId: 1}})
 	if w == nil {
 		return fmt.Errorf("Microsoft Edge WebView2 Runtime이 필요합니다. https://developer.microsoft.com/microsoft-edge/webview2 에서 Evergreen Runtime을 설치한 뒤 다시 실행해 주세요.")
 	}
+	log.Print("WebView2 window created")
 	defer w.Destroy()
 	w.SetSize(640, 450, webview.HintMin)
 	hwnd := uintptr(w.Window())

@@ -1,5 +1,5 @@
 const {chromium}=require('playwright-core');
-const {spawn}=require('node:child_process');
+const {spawn,execFileSync}=require('node:child_process');
 const fs=require('node:fs');
 const path=require('node:path');
 const assert=require('node:assert/strict');
@@ -33,6 +33,13 @@ const assert=require('node:assert/strict');
    const a=document.querySelector('#resultList a.download');const bytes=new Uint8Array(await(await fetch(a.href)).arrayBuffer());
    const pdf=await PDFLib.PDFDocument.load(bytes);return pdf.getPageCount();
   });assert.equal(merged,5);
+  const savedPath=path.resolve('tests/저장-테스트.pdf');
+  const saveDriver=spawn('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File','tests/save-dialog.ps1','-AppPid',String(app.pid),'-Destination',savedPath],{stdio:'inherit'});
+  const saveDone=new Promise((resolve,reject)=>{saveDriver.once('exit',code=>code===0?resolve():reject(new Error('Save dialog driver failed: '+code)));saveDriver.once('error',reject)});
+  const saved=await page.evaluate(async()=>{const a=document.querySelector('#resultList a.download');const bytes=new Uint8Array(await(await fetch(a.href)).arrayBuffer());return await pdfGridDesktop.saveResult('merged.pdf',bytes)});
+  assert(saved,'Native save was cancelled');await saveDone;
+  assert(fs.readFileSync(savedPath).subarray(0,5).toString()==='%PDF-','Native saved PDF missing');
+
   await page.getByRole('button',{name:'PDF 분리하기',exact:true}).click();
   await page.locator('#splitDemo').click();
   await page.waitForFunction(()=>!document.querySelector('#splitRun').disabled);
@@ -49,7 +56,10 @@ const assert=require('node:assert/strict');
   const second=spawn(exe,[samplePath],{stdio:'ignore'});await new Promise((resolve,reject)=>{second.once('exit',resolve);second.once('error',reject)});
   await page.waitForFunction(()=>document.querySelector('#pdfTabList').textContent.includes('시작-테스트.pdf'));
   await page.screenshot({path:'tests/native-pdf-open.png'});
-  fs.writeFileSync('tests/startup.json',JSON.stringify({nativeViewerReadyMs:latency,mergedPages:merged,splitFiles:2,clipboard:true,secondInstancePDF:true},null,2));
+  fs.writeFileSync('tests/startup.json',JSON.stringify({nativeViewerReadyMs:latency,mergedPages:merged,splitFiles:2,clipboard:true,nativeSave:true,secondInstancePDF:true},null,2));
   console.log('PASS native WebView2: merge, split, clipboard and second-instance Korean PDF open');
+ }catch(error){
+  console.log(execFileSync('powershell.exe',['-NoProfile','-Command',`Get-Process | Where-Object { $_.ProcessName -match 'PDF|webview|msedge' } | Select-Object ProcessName,Id,MainWindowTitle | Format-Table -AutoSize; Get-ChildItem "$env:ProgramFiles (x86)/Microsoft/EdgeWebView/Application" -ErrorAction SilentlyContinue; Get-Content "$env:LOCALAPPDATA/PDFGridWebView/startup.log" -ErrorAction SilentlyContinue`],{encoding:'utf8'}));
+  throw error;
  }finally{if(browser)await browser.close();app.kill()}
 })().catch(e=>{console.error(e);process.exitCode=1});
