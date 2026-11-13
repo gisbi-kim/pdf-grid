@@ -16,12 +16,14 @@ public class SaveDialog {
  [DllImport("user32.dll")] public static extern int GetDlgCtrlID(IntPtr h);
  [DllImport("user32.dll")] public static extern IntPtr GetParent(IntPtr h);
  [DllImport("user32.dll")] public static extern IntPtr GetDlgItem(IntPtr h,int id);
+ [DllImport("user32.dll",CharSet=CharSet.Unicode)] public static extern IntPtr SendMessage(IntPtr h,int m,IntPtr w,StringBuilder l);
  [DllImport("user32.dll",CharSet=CharSet.Unicode)] public static extern bool SetWindowText(IntPtr h,string s);
  [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h,int m,IntPtr w,IntPtr l);
  public static string Text(IntPtr h){var s=new StringBuilder(4096);GetWindowText(h,s,4096);return s.ToString();}
+ public static string ControlText(IntPtr h){var s=new StringBuilder(4096);SendMessage(h,0xD,new IntPtr(s.Capacity),s);return s.ToString();}
  public static string Class(IntPtr h){var s=new StringBuilder(256);GetClassName(h,s,256);return s.ToString();}
  public static IntPtr Find(int pid){IntPtr found=IntPtr.Zero;EnumWindows((h,l)=>{uint p;GetWindowThreadProcessId(h,out p);if(p==pid && Class(h)=="#32770" && GetDlgItem(h,1)!=IntPtr.Zero){found=h;return false;}return true;},IntPtr.Zero);return found;}
- public static IntPtr Edit(IntPtr h){IntPtr edit=IntPtr.Zero;EnumChildWindows(h,(c,l)=>{if(Class(c)=="Edit" && IsWindowVisible(c) && IsWindowEnabled(c)){Console.WriteLine("Edit ID="+GetDlgCtrlID(c)+" parent="+Class(GetParent(c))+" text="+Text(c));if(Class(GetParent(c))=="ComboBox" || GetDlgCtrlID(c)==1152)edit=c;}return true;},IntPtr.Zero);return edit;}
+ public static IntPtr Edit(IntPtr h){IntPtr edit=IntPtr.Zero;EnumChildWindows(h,(c,l)=>{if(Class(c)=="Edit" && IsWindowVisible(c) && IsWindowEnabled(c)){Console.WriteLine("Edit ID="+GetDlgCtrlID(c)+" parent="+Class(GetParent(c))+" text="+ControlText(c));if(Class(GetParent(c))=="ComboBox" || GetDlgCtrlID(c)==1152)edit=c;}return true;},IntPtr.Zero);return edit;}
  public static string Windows(int pid){var s=new StringBuilder();EnumWindows((h,l)=>{uint p;GetWindowThreadProcessId(h,out p);if(p==pid){s.Append(Class(h)+": "+Text(h)+"\n");}return true;},IntPtr.Zero);return s.ToString();}
 }
 '@
@@ -30,7 +32,7 @@ for($n=0;$n -lt 300;$n++){
  if($dialog -ne [IntPtr]::Zero){
   Write-Host "Native save dialog: $([SaveDialog]::Text($dialog))"
   $edit=[SaveDialog]::Edit($dialog)
-  if($edit -ne [IntPtr]::Zero -and [SaveDialog]::Text($edit) -eq [IO.Path]::GetFileName($Destination)){
+  if($edit -ne [IntPtr]::Zero -and ([SaveDialog]::ControlText($edit) -eq [IO.Path]::GetFileName($Destination) -or [SaveDialog]::ControlText($edit) -eq [IO.Path]::GetFileNameWithoutExtension($Destination))){
    # Accept the real dialog's default filename and Downloads folder. The native
    # test verifies the resulting PDF bytes at that path after completion.
    [SaveDialog]::PostMessage([SaveDialog]::GetDlgItem($dialog,1),0xF5,[IntPtr]::Zero,[IntPtr]::Zero)|Out-Null
