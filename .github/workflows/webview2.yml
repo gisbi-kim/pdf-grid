@@ -9,7 +9,9 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -47,6 +49,26 @@ jobs:
         shell: pwsh
         working-directory: desktop-webview2
         run: ./tests/install-smoke.ps1
+      - name: Prepare original runtime startup comparison
+        if: contains(github.event.head_commit.message, '[benchmark]')
+        working-directory: desktop-webview2
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item benchmark/inputs -ItemType Directory -Force | Out-Null
+          gh release download pdfgrid-benchmark-input-20261113 --repo gisbi-kim/pdf-grid --dir benchmark/inputs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python benchmark/prepare.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item benchmark/apps/1.4.1 -ItemType Directory -Force | Out-Null
+          go build -tags startupbenchmark -trimpath '-ldflags=-s -w -H=windowsgui' -o benchmark/apps/1.4.1/PDF-Grid.exe .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Compare startup on the same Windows machine
+        if: contains(github.event.head_commit.message, '[benchmark]')
+        working-directory: desktop-webview2
+        shell: pwsh
+        run: ./benchmark/measure.ps1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -56,3 +78,5 @@ jobs:
             desktop-webview2/PDF-Grid-Desktop-Setup-1.4.1.exe
             desktop-webview2/tests/*.png
             desktop-webview2/tests/startup.json
+            desktop-webview2/benchmark/provenance.json
+            desktop-webview2/benchmark/results/*

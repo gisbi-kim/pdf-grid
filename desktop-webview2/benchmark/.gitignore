@@ -1,0 +1,6 @@
+inputs/
+apps/
+profiles/
+results/
+provenance.json
+__pycache__/
