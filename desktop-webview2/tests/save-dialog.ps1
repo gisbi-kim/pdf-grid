@@ -13,13 +13,15 @@ public class SaveDialog {
  [DllImport("user32.dll",CharSet=CharSet.Unicode)] public static extern int GetClassName(IntPtr h,StringBuilder s,int n);
  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
  [DllImport("user32.dll")] public static extern bool IsWindowEnabled(IntPtr h);
+ [DllImport("user32.dll")] public static extern int GetDlgCtrlID(IntPtr h);
+ [DllImport("user32.dll")] public static extern IntPtr GetParent(IntPtr h);
  [DllImport("user32.dll")] public static extern IntPtr GetDlgItem(IntPtr h,int id);
  [DllImport("user32.dll",CharSet=CharSet.Unicode)] public static extern bool SetWindowText(IntPtr h,string s);
  [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h,int m,IntPtr w,IntPtr l);
  public static string Text(IntPtr h){var s=new StringBuilder(4096);GetWindowText(h,s,4096);return s.ToString();}
  public static string Class(IntPtr h){var s=new StringBuilder(256);GetClassName(h,s,256);return s.ToString();}
  public static IntPtr Find(int pid){IntPtr found=IntPtr.Zero;EnumWindows((h,l)=>{uint p;GetWindowThreadProcessId(h,out p);if(p==pid && Class(h)=="#32770" && GetDlgItem(h,1)!=IntPtr.Zero){found=h;return false;}return true;},IntPtr.Zero);return found;}
- public static IntPtr Edit(IntPtr h){IntPtr edit=IntPtr.Zero;EnumChildWindows(h,(c,l)=>{if(Class(c)=="Edit" && IsWindowVisible(c) && IsWindowEnabled(c)){edit=c;}return true;},IntPtr.Zero);return edit;}
+ public static IntPtr Edit(IntPtr h){IntPtr edit=IntPtr.Zero;EnumChildWindows(h,(c,l)=>{if(Class(c)=="Edit" && IsWindowVisible(c) && IsWindowEnabled(c)){Console.WriteLine("Edit ID="+GetDlgCtrlID(c)+" parent="+Class(GetParent(c))+" text="+Text(c));if(Class(GetParent(c))=="ComboBox" || GetDlgCtrlID(c)==1152)edit=c;}return true;},IntPtr.Zero);return edit;}
  public static string Windows(int pid){var s=new StringBuilder();EnumWindows((h,l)=>{uint p;GetWindowThreadProcessId(h,out p);if(p==pid){s.Append(Class(h)+": "+Text(h)+"\n");}return true;},IntPtr.Zero);return s.ToString();}
 }
 '@

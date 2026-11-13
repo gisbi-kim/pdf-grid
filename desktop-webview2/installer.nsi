@@ -102,7 +102,7 @@ Function CheckClosed
  Pop $0
  Pop $1
  ${If} $0 == 10
-  MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "PDF Grid가 실행 중입니다. 결과 파일을 저장하고 모든 PDF Grid 창을 닫은 뒤 '다시 시도'를 눌러 주세요." IDRETRY retry
+  MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "PDF Grid가 실행 중입니다. 결과 파일을 저장하고 앱을 종료한 뒤 '다시 시도'를 눌러 주세요.$\r$\n브라우저에서 쓰던 이전 버전은 화면의 '앱 종료' 버튼을 눌러 주세요." IDRETRY retry
   SetErrorLevel 2
   Quit
  ${ElseIf} $0 != 0

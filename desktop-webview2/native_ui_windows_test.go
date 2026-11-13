@@ -36,6 +36,14 @@ func TestNativeUI(t *testing.T) {
 	defer syscall.NewLazyDLL("ole32.dll").NewProc("CoUninitialize").Call()
 	t.Setenv("LOCALAPPDATA", t.TempDir())
 	profile := profilePath()
+	t.Cleanup(func() {
+		// The embedded controller is still COM-referenced by the test host. Stop
+		// only the runtime processes that use this test's unique temporary profile.
+		cleanup := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", `Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'msedgewebview2.exe' -and $_.CommandLine -and $_.CommandLine.Contains($env:PDFGRID_TEST_PROFILE) } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`)
+		cleanup.Env = append(os.Environ(), "PDFGRID_TEST_PROFILE="+profile)
+		cleanup.Run()
+		time.Sleep(300 * time.Millisecond)
+	})
 	os.MkdirAll(profile, 0700)
 	a := &app{token: randomToken(), instanceToken: randomToken()}
 	os.WriteFile(filepath.Join(profile, "instance-token"), []byte(a.instanceToken), 0600)
