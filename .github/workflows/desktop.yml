@@ -1,8 +1,5 @@
-name: Build offline Windows app
+name: Legacy browser launcher (manual)
 on:
-  push:
-    branches: [main]
-    paths: ['desktop/**', 'dev/**', 'index.html', '.github/workflows/desktop.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -92,5 +89,5 @@ jobs:
         run: |
           $tag="desktop-v1.0.0-build.$env:RUN_NUMBER"
           Get-FileHash desktop/PDF-Grid-Setup.exe,desktop/PDF-Grid-Portable.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $([IO.Path]::GetFileName($_.Path))" } | Set-Content -Encoding ascii desktop/SHA256SUMS.txt
-          gh release create $tag desktop/PDF-Grid-Setup.exe desktop/PDF-Grid-Portable.exe desktop/SHA256SUMS.txt --repo $env:RELEASE_REPO --target $env:RELEASE_COMMIT --title 'PDF Grid Offline 1.0.0' --notes-file desktop/RELEASE-NOTES.md --latest
+          gh release create $tag desktop/PDF-Grid-Setup.exe desktop/PDF-Grid-Portable.exe desktop/SHA256SUMS.txt --repo $env:RELEASE_REPO --target $env:RELEASE_COMMIT --title 'PDF Grid Offline 1.0.0' --notes-file desktop/RELEASE-NOTES.md --latest=false
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
