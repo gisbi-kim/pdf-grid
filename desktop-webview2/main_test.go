@@ -70,7 +70,7 @@ func TestQueuedPDFAndAuth(t *testing.T) {
 	}
 }
 func TestSaveNames(t *testing.T) {
-	for _, s := range []string{"x.pdf", "한국어.zip"} {
+	for _, s := range []string{"x.pdf", "한국어.zip", strings.Repeat("가", 100) + ".pdf"} {
 		if !validOutputName(s) {
 			t.Fatal(s)
 		}

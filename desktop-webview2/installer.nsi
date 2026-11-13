@@ -9,6 +9,7 @@ RequestExecutionLevel user
 SetCompressor /SOLID lzma
 SetCompressorDictSize 16
 BrandingText "PDF Grid"
+AutoCloseWindow true
 Icon "app.ico"
 UninstallIcon "app.ico"
 VIProductVersion "1.4.0.0"

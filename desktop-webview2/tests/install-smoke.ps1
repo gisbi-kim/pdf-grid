@@ -27,6 +27,8 @@ function Answer($process,$id,$text){
   if($process.HasExited){throw "Setup exited before expected dialog: $text"}
   Start-Sleep -Milliseconds 100
  }
+ $dialog=[WinDialog]::Find($process.Id,1)
+ if($dialog -ne [IntPtr]::Zero){Write-Host ([WinDialog]::Children($dialog))}
  throw "Dialog timeout: $text"
 }
 $setup=(Resolve-Path './PDF-Grid-Desktop-Setup-1.4.0.exe').Path
@@ -44,6 +46,7 @@ if(!(Test-Path "$target/PDF-Grid.exe")){throw 'Missing installed executable'}
 $before=(Get-FileHash "$target/PDF-Grid.exe").Hash
 # Existing version prompts even if setup is invoked with /S.
 Set-ItemProperty $key DisplayVersion '1.3.3'
+Move-Item "$target/Uninstall.exe" "$target/Uninstall PDF Grid.exe"
 $p=Start-Process $setup -PassThru
 Answer $p 7 '경량 버전 1.4.0으로 교체'
 if(!$p.WaitForExit(30000)){throw 'Cancelled upgrade did not exit'}
@@ -54,6 +57,7 @@ Answer $p 6 '경량 버전 1.4.0으로 교체'
 Answer $p 7 '설치가 완료'
 if(!$p.WaitForExit(60000) -or $p.ExitCode -ne 0){throw 'Upgrade failed'}
 if((Get-ItemProperty $key).DisplayVersion -ne '1.4.0'){throw 'Upgrade did not record version'}
+Remove-Item "$target/Uninstall PDF Grid.exe" -ErrorAction SilentlyContinue
 $p=Start-Process $setup -PassThru
 Answer $p 7 '다시 설치할까요'
 if(!$p.WaitForExit(30000)){throw 'Same version cancel failed'}

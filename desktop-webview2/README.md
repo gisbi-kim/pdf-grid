@@ -14,7 +14,7 @@
 
 ## 재빌드
 
-Go 1.26.1, NSIS 3.12를 사용했습니다. `WebView2Loader.dll`은 설치 시 런타임 확인용 **x86 SDK 로더**입니다. 앱 자체는 x64이며 Go 패키지가 x64 로더를 포함합니다. 런타임 자체와는 다른 파일입니다. 관련 라이선스는 `web/LICENSE-*`에 포함했습니다.
+Go 1.26.1과 NSIS(로컬 3.12, Windows CI 3.13)를 사용했습니다. `WebView2Loader.dll`은 설치 시 런타임 확인용 **x86 SDK 로더**입니다. 앱 자체는 x64이며 Go 패키지가 x64 로더를 포함합니다. 런타임 자체와는 다른 파일입니다. 관련 라이선스는 `web/LICENSE-*`에 포함했습니다.
 
 ```sh
 go test ./...
@@ -26,4 +26,4 @@ makensis installer.nsi
 
 Windows PowerShell에서는 빌드 전에 `$env:GOOS='windows'; $env:GOARCH='amd64'; $env:CGO_ENABLED='0'`을 설정하고 `go build -trimpath '-ldflags=-s -w -H=windowsgui' -o PDF-Grid.exe .`을 실행합니다.
 
-`tests/ui-smoke.cjs`는 실제 Windows WebView2 창의 PDF 기능, 클립보드, 두 번째 실행 파일 전달을 확인합니다. `tests/install-smoke.ps1`은 설치 확인창·취소·재설치·실행 중 앱 보호를 확인합니다. CI 시작 시간은 해당 CI 호스트의 수치이며 원래 Electron 버전과 동일 PC에서 비교한 성능 결과는 아닙니다.
+`PDFGRID_NATIVE_TEST=1 go test -run TestNativeUI -v`는 실제 Windows WebView2 창에서 PDF 기능, 네이티브 저장 대화상자, 클립보드, 두 번째 실행 파일 전달을 확인합니다. `tests/native-smoke.js`는 테스트 실행 파일에만 포함되며 제품 실행 파일에는 포함되지 않습니다. `tests/install-smoke.ps1`은 설치 확인창·취소·재설치·실행 중 앱 보호를 확인합니다. CI 시작 시간은 해당 CI 호스트의 수치이며 원래 Electron 버전과 동일 PC에서 비교한 성능 결과는 아닙니다.
