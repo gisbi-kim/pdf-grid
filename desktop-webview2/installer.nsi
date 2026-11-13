@@ -2,8 +2,10 @@
 !include "LogicLib.nsh"
 !include "x64.nsh"
 !include "FileFunc.nsh"
-Name "PDF Grid 1.4.0"
-OutFile "PDF-Grid-Desktop-Setup-1.4.0.exe"
+!include "nsDialogs.nsh"
+!include "WinMessages.nsh"
+Name "PDF Grid 1.4.1"
+OutFile "PDF-Grid-Desktop-Setup-1.4.1.exe"
 InstallDir "$LOCALAPPDATA\Programs\pdf-grid-desktop"
 RequestExecutionLevel user
 SetCompressor /SOLID lzma
@@ -12,12 +14,12 @@ BrandingText "PDF Grid"
 AutoCloseWindow true
 Icon "app.ico"
 UninstallIcon "app.ico"
-VIProductVersion "1.4.0.0"
+VIProductVersion "1.4.1.0"
 VIAddVersionKey "LegalCopyright" "PDF Grid contributors"
 VIAddVersionKey "ProductName" "PDF Grid"
 VIAddVersionKey "FileDescription" "PDF Grid lightweight setup"
-VIAddVersionKey "FileVersion" "1.4.0"
-VIAddVersionKey "ProductVersion" "1.4.0"
+VIAddVersionKey "FileVersion" "1.4.1"
+VIAddVersionKey "ProductVersion" "1.4.1"
 !define KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\88d3b172-4c13-5732-a92d-3c1735225b00"
 !define LOCATIONKEY "Software\88d3b172-4c13-5732-a92d-3c1735225b00"
 Var OldVersion
@@ -25,6 +27,12 @@ Var OldLocation
 Var OldUninstaller
 Var OldType
 Var Mutex
+Var IsExisting
+Var ForceMode
+Var ModeDialog
+Var NormalRadio
+Var ForceRadio
+Page custom MaintenanceCreate MaintenanceLeave
 Page instfiles
 UninstPage uninstConfirm
 UninstPage instfiles
@@ -42,6 +50,8 @@ Function .onInit
   MessageBox MB_ICONINFORMATION "다른 PDF Grid 설치 프로그램이 실행 중입니다."
   Abort
  ${EndIf}
+ StrCpy $IsExisting 0
+ StrCpy $ForceMode 0
  StrCpy $OldType ""
  ReadRegStr $OldVersion HKCU "${KEY}" "DisplayVersion"
  ReadRegStr $OldLocation HKCU "${LOCATIONKEY}" "InstallLocation"
@@ -66,13 +76,20 @@ Function .onInit
  ${If} $OldVersion != ""
  ${OrIf} $OldType != ""
  ${OrIf} ${FileExists} "$OldLocation\PDF Grid.exe"
+  StrCpy $IsExisting 1
+  IfSilent 0 +3
+   MessageBox MB_ICONSTOP "기존 설치가 있습니다. 설치 방식 확인을 위해 /S 없이 실행해 주세요."
+   Abort
+  ${If} $OldVersion == "1.1.0"
+   StrCpy $ForceMode 1
+  ${EndIf}
   ${If} $OldVersion == ""
    StrCpy $OldVersion "버전 정보 없음"
   ${EndIf}
-  ${If} $OldVersion == "1.4.0"
-   MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "PDF Grid $OldVersion 버전이 이미 설치되어 있습니다.$\r$\n$\r$\n기존 프로그램을 제거하고 1.4.0 버전을 다시 설치할까요?$\r$\nPDF 원본과 기존 사용자 데이터 폴더는 삭제하지 않습니다.$\r$\n작업 중인 결과를 저장하고 PDF Grid 창을 닫은 뒤 진행해 주세요." IDYES confirmed
+  ${If} $OldVersion == "1.4.1"
+   MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "PDF Grid $OldVersion 버전이 이미 설치되어 있습니다.$\r$\n$\r$\n기존 프로그램을 제거하고 1.4.1 버전을 다시 설치할까요?$\r$\nPDF 원본과 기존 사용자 데이터 폴더는 삭제하지 않습니다.$\r$\n작업 중인 결과를 저장하고 PDF Grid 창을 닫은 뒤 진행해 주세요." IDYES confirmed
   ${Else}
-   MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "PDF Grid $OldVersion 버전이 설치되어 있습니다.$\r$\n$\r$\n기존 프로그램을 제거하고 경량 버전 1.4.0으로 교체할까요?$\r$\nPDF 원본과 기존 사용자 데이터 폴더는 삭제하지 않습니다.$\r$\n작업 중인 결과를 저장하고 PDF Grid 창을 닫은 뒤 진행해 주세요." IDYES confirmed
+   MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "PDF Grid $OldVersion 버전이 설치되어 있습니다.$\r$\n$\r$\n기존 프로그램을 제거하고 경량 버전 1.4.1으로 교체할까요?$\r$\nPDF 원본과 기존 사용자 데이터 폴더는 삭제하지 않습니다.$\r$\n작업 중인 결과를 저장하고 PDF Grid 창을 닫은 뒤 진행해 주세요." IDYES confirmed
   ${EndIf}
   Abort
  confirmed:
@@ -88,6 +105,94 @@ Function .onInit
  ${If} $0 != ""
   MessageBox MB_ICONSTOP "관리자 권한으로 설치된 이전 PDF Grid가 있습니다. Windows 설정의 '설치된 앱'에서 이전 버전을 제거한 뒤 이 설치 프로그램을 다시 실행해 주세요."
   Abort
+ ${EndIf}
+FunctionEnd
+
+
+Function MaintenanceCreate
+ ${If} $IsExisting != 1
+  Abort
+ ${EndIf}
+ nsDialogs::Create 1018
+ Pop $ModeDialog
+ ${If} $ModeDialog == error
+  Abort
+ ${EndIf}
+ ${NSD_CreateLabel} 0 0 100% 18u "PDF Grid $OldVersion — 설치 방식을 선택하세요."
+ Pop $0
+ ${NSD_CreateRadioButton} 0 24u 100% 20u "일반 업데이트 / 재설치"
+ Pop $NormalRadio
+ ${NSD_CreateRadioButton} 0 48u 100% 28u "기존 프로그램 강제 정리 후 재설치 (제거 오류 시 권장)"
+ Pop $ForceRadio
+ ${If} $ForceMode == 1
+  ${NSD_Check} $ForceRadio
+ ${Else}
+  ${NSD_Check} $NormalRadio
+ ${EndIf}
+ ${NSD_CreateLabel} 0 80u 100% 28u "강제 정리는 기존 제거 프로그램을 실행하지 않고 PDF Grid 프로그램 파일과 등록 정보만 정리합니다. PDF 원본과 사용자 데이터는 유지합니다."
+ Pop $0
+ ${NSD_CreateLabel} 0 112u 100% 20u "$INSTDIR"
+ Pop $0
+ nsDialogs::Show
+FunctionEnd
+
+Function MaintenanceLeave
+ ${NSD_GetState} $ForceRadio $0
+ StrCpy $ForceMode 0
+ ${If} $0 == ${BST_CHECKED}
+  StrCpy $ForceMode 1
+ ${EndIf}
+FunctionEnd
+
+Function ForceCleanup
+ ; Refuse drive roots and personal/system base directories. Only exact owned
+ ; filenames are removed, and any other files (including PDFs) remain in place.
+ GetFullPathName $0 "$INSTDIR"
+ ${GetRoot} "$0" $1
+ ${If} $0 == "$1\"
+ ${OrIf} $0 == "$1"
+ ${OrIf} $0 == "$PROFILE"
+ ${OrIf} $0 == "$DESKTOP"
+ ${OrIf} $0 == "$DOCUMENTS"
+ ${OrIf} $0 == "$APPDATA"
+ ${OrIf} $0 == "$LOCALAPPDATA"
+ ${OrIf} $0 == "$PROGRAMFILES"
+ ${OrIf} $0 == "$PROGRAMFILES64"
+ ${OrIf} $0 == "$WINDIR"
+  MessageBox MB_ICONSTOP "설치 경로를 확인할 수 없어 강제 정리를 중단했습니다. 프로그램 전용 폴더인지 확인해 주세요."
+  SetErrorLevel 2
+  Quit
+ ${EndIf}
+ StrCpy $INSTDIR $0
+ ; No deletion through directory junctions/symbolic links.
+ StrCpy $2 "$INSTDIR"
+ Call RejectReparse
+ StrCpy $2 "$INSTDIR\resources"
+ Call RejectReparse
+ StrCpy $2 "$INSTDIR\locales"
+ Call RejectReparse
+ !include "force-cleanup.nsh"
+ RMDir "$INSTDIR\resources"
+ RMDir "$INSTDIR\locales"
+ DeleteRegKey HKCU "${KEY}"
+ DeleteRegKey HKCU "${LOCATIONKEY}"
+ Delete "$SMPROGRAMS\PDF Grid.lnk"
+ Return
+ cleanupFailed:
+ MessageBox MB_ICONSTOP "PDF Grid 프로그램 파일을 정리하지 못했습니다. PDF Grid와 이전 오류 창을 닫고 다시 시도해 주세요."
+ SetErrorLevel 2
+ Quit
+FunctionEnd
+
+Function RejectReparse
+ System::Call 'kernel32::GetFileAttributes(t r2)i.r0'
+ ${If} $0 != -1
+  IntOp $0 $0 & 0x400
+  ${If} $0 != 0
+   MessageBox MB_ICONSTOP "설치 경로가 연결 폴더여서 자동 강제 정리를 중단했습니다."
+   SetErrorLevel 2
+   Quit
+  ${EndIf}
  ${EndIf}
 FunctionEnd
 
@@ -132,13 +237,17 @@ Section "Install"
   Abort
  ${EndIf}
  System::Call 'ole32::CoTaskMemFree(p r2)'
- ${If} $OldUninstaller != ""
-  ; Explicit _?= keeps NSIS ExecWait synchronous. No /DELETE_APP_DATA flag.
+ ${If} $ForceMode == 1
+  Call ForceCleanup
+ ${ElseIf} $OldUninstaller != ""
   CopyFiles /SILENT "$OldUninstaller" "$PLUGINSDIR\previous-uninstall.exe"
   ExecWait '"$PLUGINSDIR\previous-uninstall.exe" /S /KEEP_APP_DATA _?=$INSTDIR' $0
   ${If} $0 != 0
-   MessageBox MB_ICONSTOP "이전 버전 제거에 실패했습니다. Windows 설정에서 PDF Grid를 제거한 뒤 다시 설치해 주세요."
-   Abort
+   MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "이전 제거 프로그램이 실패했습니다.$\r$\nPDF Grid 프로그램 파일을 직접 정리하고 재설치할까요?$\r$\nPDF 원본과 사용자 데이터는 유지합니다." IDYES fallbackCleanup
+   SetErrorLevel 2
+   Quit
+   fallbackCleanup:
+   Call ForceCleanup
   ${EndIf}
  ${EndIf}
  SetOutPath "$INSTDIR"
@@ -148,7 +257,7 @@ Section "Install"
  WriteUninstaller "$INSTDIR\Uninstall.exe"
  WriteRegStr HKCU "${LOCATIONKEY}" "InstallLocation" "$INSTDIR"
  WriteRegStr HKCU "${KEY}" "DisplayName" "PDF Grid"
- WriteRegStr HKCU "${KEY}" "DisplayVersion" "1.4.0"
+ WriteRegStr HKCU "${KEY}" "DisplayVersion" "1.4.1"
  WriteRegStr HKCU "${KEY}" "Publisher" "PDF Grid contributors"
  WriteRegStr HKCU "${KEY}" "InstallLocation" "$INSTDIR"
  WriteRegStr HKCU "${KEY}" "DisplayIcon" '$\"$INSTDIR\PDF-Grid.exe$\",0'
@@ -170,7 +279,7 @@ Section "Install"
  WriteRegStr HKCU "Software\RegisteredApplications" "PDF Grid" "Software\PDFGridDesktop\Capabilities"
  System::Call 'shell32::SHChangeNotify(i 0x08000000,i0,p0,p0)'
  IfSilent done
- MessageBox MB_YESNO|MB_ICONINFORMATION "PDF Grid 1.4.0 설치가 완료되었습니다.$\r$\n지금 실행할까요?" IDNO done
+ MessageBox MB_YESNO|MB_ICONINFORMATION "PDF Grid 1.4.1 설치가 완료되었습니다.$\r$\n지금 실행할까요?" IDNO done
  Exec '"$INSTDIR\PDF-Grid.exe"'
  Goto done
  installFailed:

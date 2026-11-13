@@ -50,9 +50,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: PDFGrid-1.4.0-Windows-verification
+          name: PDFGrid-1.4.1-Windows-verification
           path: |
             desktop-webview2/PDF-Grid.exe
-            desktop-webview2/PDF-Grid-Desktop-Setup-1.4.0.exe
+            desktop-webview2/PDF-Grid-Desktop-Setup-1.4.1.exe
             desktop-webview2/tests/*.png
             desktop-webview2/tests/startup.json

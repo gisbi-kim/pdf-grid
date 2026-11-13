@@ -1,4 +1,4 @@
-# PDF Grid 1.4.0 — Windows 경량 버전
+# PDF Grid 1.4.1 — Windows 경량 버전
 
 `PDFGrid.zip`의 Electron 1.3.3 설치 파일에서 `resources/app.asar`를 추출해 복원한 화면과 PDF 기능을 사용합니다. PDF 처리 코드를 유지하고, Electron 실행기만 Go + 공유 WebView2 Runtime을 사용하는 실행기로 교체했습니다. 기존 `desktop/` 브라우저 실행 버전과 별개입니다.
 
