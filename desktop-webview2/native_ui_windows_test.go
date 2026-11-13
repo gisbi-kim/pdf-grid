@@ -25,6 +25,9 @@ import (
 //go:embed tests/native-smoke.js
 var nativeSmokeJS string
 
+//go:embed tests/pdf-fixtures.js
+var nativePDFFixturesJS string
+
 func TestNativeUI(t *testing.T) {
 	if os.Getenv("PDFGRID_NATIVE_TEST") != "1" {
 		t.Skip("Run after building PDF-Grid.exe with PDFGRID_NATIVE_TEST=1 on Windows")
@@ -48,6 +51,20 @@ func TestNativeUI(t *testing.T) {
 	})
 	os.MkdirAll(profile, 0700)
 	a := &app{token: randomToken(), instanceToken: randomToken()}
+	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.4.2.exe")
+	if err != nil {
+		t.Fatal(err)
+	}
+	updates, _ := fakeUpdates(t, setupBytes, false)
+	a.updateSource = updates
+	externalSeen := false
+	a.externalOpener = func(address string) error {
+		if address != "https://example.com/pdf-link" {
+			return fmt.Errorf("Unexpected external link: %s", address)
+		}
+		externalSeen = true
+		return nil
+	}
 	os.WriteFile(filepath.Join(profile, "instance-token"), []byte(a.instanceToken), 0600)
 	listener, err := net.Listen("tcp4", address)
 	if err != nil {
@@ -74,6 +91,17 @@ func TestNativeUI(t *testing.T) {
 	result := make(chan string, 1)
 	finished := make(chan struct{})
 	defer close(finished)
+	a.installerLauncher = func(target string) error {
+		b, err := os.ReadFile(target)
+		if err != nil || string(b) != string(setupBytes) {
+			return fmt.Errorf("Updater did not verify and download the expected installer")
+		}
+		if !externalSeen {
+			return fmt.Errorf("External-link bridge was not exercised")
+		}
+		result <- "ok"
+		return nil
+	}
 	windowTestHook = func(w webview.WebView) {
 		w.Bind("nativeTestStage", func(stage string) error {
 			if stage == "ready" {
@@ -100,6 +128,7 @@ func TestNativeUI(t *testing.T) {
 		w.Bind("nativeTestDone", func(message string) { result <- message; w.Terminate() })
 		nameJSON, _ := json.Marshal(filename)
 		w.Init("window.nativeTestFilename=" + string(nameJSON))
+		w.Init(nativePDFFixturesJS)
 		w.Init(nativeSmokeJS)
 		go func() {
 			select {
@@ -134,5 +163,5 @@ func TestNativeUI(t *testing.T) {
 	if err != nil || !strings.HasPrefix(string(b), "%PDF-") {
 		t.Fatalf("Native save: %v", err)
 	}
-	t.Log("PASS actual WebView2 viewer, merge, native save, split, clipboard and second-instance PDF open")
+	t.Log("PASS actual WebView2: merge, save, split, clipboard, PDF forwarding, keyboard navigation, PDF links/outline, external-link bridge, update UI and verified installer launch handoff")
 }

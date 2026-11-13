@@ -24,7 +24,7 @@ import (
 //go:embed web
 var assets embed.FS
 
-const version = "1.4.1"
+const version = "1.4.2"
 const identity = "pdf-grid-webview2-v1"
 const address = "127.0.0.1:49383"
 
@@ -33,6 +33,9 @@ type app struct {
 	mu                   sync.Mutex
 	pending              []string
 	notify               func()
+	externalOpener       func(string) error
+	updateSource         *updateClient
+	installerLauncher    func(string) error
 }
 
 func randomToken() string {
@@ -134,11 +137,17 @@ const bridgeJS = `(function(){
  const token='%s';
  const encode=bytes=>{let s='';for(let i=0;i<bytes.length;i+=32768)s+=String.fromCharCode(...bytes.subarray(i,i+32768));return btoa(s)};
  const decode=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+ const jobs=new Map();
+ window.__pdfGridTaskResult=(id,result,error)=>{const p=jobs.get(id);if(!p)return;jobs.delete(id);if(error)p.reject(new Error(error));else p.resolve(result)};
+ const task=(method,...args)=>new Promise((resolve,reject)=>{const id=crypto.randomUUID();jobs.set(id,{resolve,reject});window[method](token,id,...args).catch(error=>{jobs.delete(id);reject(error)})});
  const saves=new Map();
  window.__pdfGridSaveResult=(id,saved,error)=>{const p=saves.get(id);if(!p)return;saves.delete(id);if(error)p.reject(new Error(error));else p.resolve(saved)};
  window.pdfGridDesktop=Object.freeze({
  saveResult:(name,bytes)=>new Promise((resolve,reject)=>{const id=crypto.randomUUID();saves.set(id,{resolve,reject});window.nativeSave(token,id,name,encode(bytes)).catch(error=>{saves.delete(id);reject(error)})}),
  copyPDFImage:bytes=>window.nativeCopy(token,encode(bytes)),
+ openExternal:url=>window.nativeOpenExternal(token,url),
+ checkForUpdates:()=>task("nativeCheckUpdates"),
+ installUpdate:tag=>task("nativeInstallUpdate",tag),
  getStartupPDF:async()=>{const f=await window.nativeNext(token);return f?{name:f.name,bytes:decode(f.bytes)}:null},
  onPDFOpenRequested:callback=>window.addEventListener('pdf-open-requested',callback)
  });

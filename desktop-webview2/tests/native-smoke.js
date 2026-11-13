@@ -18,9 +18,28 @@
    const canvas=document.createElement('canvas');canvas.width=10;canvas.height=8;canvas.getContext('2d').fillRect(0,0,10,8);
    const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
    if(!await pdfGridDesktop.copyPDFImage(new Uint8Array(await blob.arrayBuffer())))throw new Error('Native clipboard');
-   const pdf=await PDFLib.PDFDocument.create();pdf.addPage();await nativeTestStage('second:'+btoa(String.fromCharCode(...await pdf.save())));
+   const pdfBytes=await createPDFGridFixture(PDFLib,24);await nativeTestStage('second:'+btoa(String.fromCharCode(...pdfBytes)));
    await until(()=>document.querySelector('#pdfTabList').textContent.includes('startup-test.pdf'));
-   await nativeTestDone('ok');
+   const frame=document.querySelector('.pdfTabPanel[aria-hidden="false"] iframe').contentWindow;
+   await until(()=>frame.document.querySelectorAll('.sheet').length===24);
+   const stage=frame.document.querySelector('#stage');
+   for(const rows of [1,2,10]){
+    frame.setGridViewportRows(rows);frame.go(1);stage.focus();let steps=0;
+    while(!frame.document.querySelector('#next').disabled){const before=stage.scrollTop;stage.dispatchEvent(new frame.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));if(stage.scrollTop<=before)throw new Error('Right arrow stalled');if(++steps>40)throw new Error('Forward navigation did not reach bottom');await sleep(10)}
+    steps=0;while(!frame.document.querySelector('#prev').disabled){const before=stage.scrollTop;stage.dispatchEvent(new frame.KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true}));if(stage.scrollTop>=before)throw new Error('Left arrow stalled');if(++steps>40)throw new Error('Backward navigation did not reach top');await sleep(10)}
+   }
+   frame.setGridViewportRows(1);frame.go(1);
+   await until(()=>frame.document.querySelector('.sheet .pdfLinkLayer')?.children.length===3);
+   frame.document.querySelector('.sheet .pdfLink').click();await until(()=>frame.document.querySelector('.sheet.selected .num')?.textContent==='10');
+   frame.go(1);await until(()=>frame.document.querySelector('.sheet .pdfLinkLayer')?.children.length===3);frame.document.querySelectorAll('.sheet .pdfLink')[1].click();await until(()=>frame.document.querySelector('.sheet.selected .num')?.textContent==='4');
+   frame.document.querySelector('#outlineToggle').click();frame.document.querySelector('#pdfOutline a').click();await until(()=>frame.document.querySelector('#pdfOutline').hidden&&frame.document.querySelector('.sheet.selected .num')?.textContent==='4');
+   frame.go(1);await until(()=>frame.document.querySelector('.sheet .pdfLinkLayer')?.children.length===3);frame.document.querySelector('.sheet a[href="https://example.com/pdf-link"]').click();await sleep(100);
+   document.querySelector('#checkForUpdates').click();await until(()=>!document.querySelector('#installUpdate').hidden);
+   if(!document.querySelector('#updateStatus').textContent.includes('9.9.9'))throw new Error('Update UI did not show latest version');
+   document.querySelector('#updateClose').click();const latest=await pdfGridDesktop.checkForUpdates();
+   // The native host records the verified launch handoff and exits its UI loop.
+   // The test launcher never executes a real installer from this test window.
+   await pdfGridDesktop.installUpdate(latest.tag);
   }catch(e){await nativeTestDone(String(e.stack||e))}
  });
 })();

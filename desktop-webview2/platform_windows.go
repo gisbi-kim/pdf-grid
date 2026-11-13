@@ -4,6 +4,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -12,9 +13,12 @@ import (
 	"image/png"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
+	"time"
 	"unsafe"
 )
 
@@ -70,6 +74,109 @@ func runWindow(a *app, profile, url string) error {
 			return false, fmt.Errorf("Unauthorized")
 		}
 		return copyPNG(hwnd, data)
+	}); err != nil {
+		return err
+	}
+	if err := w.Bind("nativeOpenExternal", func(token, address string) error {
+		if token != a.token {
+			return fmt.Errorf("Unauthorized")
+		}
+		if err := validateExternalURL(address); err != nil {
+			return err
+		}
+		if a.externalOpener != nil {
+			return a.externalOpener(address)
+		}
+		return openExternalBrowser(address)
+	}); err != nil {
+		return err
+	}
+	updates := a.updateSource
+	if updates == nil {
+		updates = defaultUpdateClient()
+	}
+	var latestMu sync.Mutex
+	var latestChecked *updateRelease
+	installingUpdate := false
+	completeTask := func(id string, result any, err error) {
+		message := ""
+		if err != nil {
+			message = err.Error()
+		}
+		idJSON, _ := json.Marshal(id)
+		resultJSON, _ := json.Marshal(result)
+		errorJSON, _ := json.Marshal(message)
+		w.Dispatch(func() { w.Eval(fmt.Sprintf("window.__pdfGridTaskResult(%s,%s,%s)", idJSON, resultJSON, errorJSON)) })
+	}
+	validTask := func(token, id string) error {
+		if token != a.token || len(id) == 0 || len(id) > 80 {
+			return fmt.Errorf("Unauthorized")
+		}
+		return nil
+	}
+	if err := w.Bind("nativeCheckUpdates", func(token, id string) error {
+		if err := validTask(token, id); err != nil {
+			return err
+		}
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+			defer cancel()
+			r, err := updates.latest(ctx)
+			if err == nil {
+				latestMu.Lock()
+				latestChecked = &r
+				latestMu.Unlock()
+			}
+			completeTask(id, r, err)
+		}()
+		return nil
+	}); err != nil {
+		return err
+	}
+	if err := w.Bind("nativeInstallUpdate", func(token, id, tag string) error {
+		if err := validTask(token, id); err != nil {
+			return err
+		}
+		latestMu.Lock()
+		if installingUpdate {
+			latestMu.Unlock()
+			return fmt.Errorf("이미 설치 파일을 준비하고 있습니다.")
+		}
+		var release updateRelease
+		if latestChecked != nil {
+			release = *latestChecked
+		}
+		if !release.CanInstall || release.Tag != tag {
+			latestMu.Unlock()
+			return fmt.Errorf("최신 버전을 다시 확인해 주세요.")
+		}
+		installingUpdate = true
+		latestMu.Unlock()
+		resetInstall := func() { latestMu.Lock(); installingUpdate = false; latestMu.Unlock() }
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			defer cancel()
+			target, err := updates.download(ctx, release, filepath.Join(profile, "Updates"))
+			if err != nil {
+				resetInstall()
+				completeTask(id, nil, err)
+				return
+			}
+			w.Dispatch(func() {
+				launcher := a.installerLauncher
+				if launcher == nil {
+					launcher = launchUpdateInstaller
+				}
+				if err := launcher(target); err != nil {
+					resetInstall()
+					completeTask(id, nil, fmt.Errorf("설치 프로그램을 실행하지 못했습니다: %w", err))
+					return
+				}
+				completeTask(id, true, nil)
+				w.Terminate()
+			})
+		}()
+		return nil
 	}); err != nil {
 		return err
 	}
@@ -226,4 +333,25 @@ func copyPNG(hwnd uintptr, data []byte) (bool, error) {
 	}
 	owned = false
 	return true, nil
+}
+
+func openExternalBrowser(address string) error {
+	if err := validateExternalURL(address); err != nil {
+		return err
+	}
+	verb, _ := syscall.UTF16PtrFromString("open")
+	target, _ := syscall.UTF16PtrFromString(address)
+	result, _, _ := syscall.NewLazyDLL("shell32.dll").NewProc("ShellExecuteW").Call(0, uintptr(unsafe.Pointer(verb)), uintptr(unsafe.Pointer(target)), 0, 0, 1)
+	if result <= 32 {
+		return fmt.Errorf("기본 브라우저에서 링크를 열지 못했습니다.")
+	}
+	return nil
+}
+
+func launchUpdateInstaller(target string) error {
+	cmd := exec.Command(target)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	return cmd.Process.Release()
 }

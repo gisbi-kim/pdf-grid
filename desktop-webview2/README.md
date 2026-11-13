@@ -1,4 +1,4 @@
-# PDF Grid 1.4.1 — Windows 경량 버전
+# PDF Grid 1.4.2 — Windows 경량 버전
 
 1.4.1은 설치 방식 화면에 **기존 프로그램 강제 정리 후 재설치**를 추가합니다. 제공받은 1.1.0 설치 파일 자체의 CRC는 정상이나, 포함된 제거 프로그램의 저장 CRC는 `0e68a969`, 실제 계산값은 `456ea5df`로 불일치합니다. 강제 모드는 이 제거 프로그램을 실행하지 않고 `force-cleanup.nsh`의 정확한 프로그램 파일 81개와 해당 앱의 등록 정보만 정리합니다. 폴더를 재귀적으로 삭제하거나 확장자 와일드카드로 지우지 않습니다. 드라이브 루트·개인/시스템 기본 폴더·연결 폴더는 거부합니다. PDF 파일과 사용자 프로필 보존은 실제 손상된 1.1.0 제거 파일을 넣은 Windows 테스트에서 확인했습니다.
 
@@ -35,3 +35,9 @@ makensis installer.nsi
 Windows PowerShell에서는 빌드 전에 `$env:GOOS='windows'; $env:GOARCH='amd64'; $env:CGO_ENABLED='0'`을 설정하고 `go build -trimpath '-ldflags=-s -w -H=windowsgui' -o PDF-Grid.exe .`을 실행합니다.
 
 `PDFGRID_NATIVE_TEST=1 go test -run TestNativeUI -v`는 실제 Windows WebView2 창에서 PDF 기능, 네이티브 저장 대화상자, 클립보드, 두 번째 실행 파일 전달을 확인합니다. `tests/native-smoke.js`는 테스트 실행 파일에만 포함되며 제품 실행 파일에는 포함되지 않습니다. `tests/install-smoke.ps1`은 설치 확인창·취소·재설치·실행 중 앱 보호를 확인합니다. CI 시작 시간은 해당 CI 호스트의 수치이며 원래 Electron 버전과 동일 PC에서 비교한 성능 결과는 아닙니다.
+
+## 1.4.2 viewer and update controls
+
+Left/right navigation handles fractional row positions and the last-row remainder. Embedded PDF hyperlinks and the 목차 button support internal destinations, document bookmarks and external web links. PDFs without link annotations/bookmarks do not gain links automatically.
+
+The blue circular 최신 버전 확인 button checks the public GitHub release on demand. It offers an update or same-version reinstall, downloads the canonical installer, verifies SHA256, then launches setup and closes the app after confirmation. It does not check the network during startup. Offline checks leave the app running.

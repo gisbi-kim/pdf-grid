@@ -24,6 +24,8 @@
     "web/index.html": "87a6b4235220fbad5c302f40147d2ca2ad40d761a46e4cf097c97208132864a8"
   },
   "changesToBrowserAssets": [
-    "web/dev/index.html: inject local bridge before deferred application scripts; PDF processing assets unchanged"
+    "web/dev/index.html: inject native bridge and update button script before/after deferred application scripts",
+    "web/index.html: fix fractional-row navigation; add link annotation overlays and document outline; preserve original PDF processing libraries",
+    "web/dev/update-ui.js: on-demand release check and confirmed verified installer handoff"
   ]
 }
