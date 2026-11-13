@@ -1,0 +1,58 @@
+name: Verify lightweight Windows app
+on:
+  push:
+    branches: [codex/pdfgrid-webview2-1.4]
+    paths: ['desktop-webview2/**', '.github/workflows/webview2.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.1'
+          cache-dependency-path: desktop-webview2/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build app and installer
+        shell: pwsh
+        working-directory: desktop-webview2
+        run: |
+          go test ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test web/dev/tests/core.test.cjs web/dev/tests/touch.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go run github.com/tc-hib/go-winres@v0.3.3 make --in winres.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:CGO_ENABLED='0'
+          go build -trimpath '-ldflags=-s -w -H=windowsgui' -o PDF-Grid.exe .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          choco install nsis -y --no-progress
+          & 'C:/Program Files (x86)/NSIS/makensis.exe' installer.nsi
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci --prefix tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Exercise native WebView2 and desktop features
+        shell: pwsh
+        working-directory: desktop-webview2
+        run: |
+          node tests/ui-smoke.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Exercise installer confirmations and replacement
+        shell: pwsh
+        working-directory: desktop-webview2
+        run: ./tests/install-smoke.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: PDFGrid-1.4.0-Windows-verification
+          path: |
+            desktop-webview2/PDF-Grid.exe
+            desktop-webview2/PDF-Grid-Desktop-Setup-1.4.0.exe
+            desktop-webview2/tests/*.png
+            desktop-webview2/tests/startup.json
