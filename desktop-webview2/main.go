@@ -66,17 +66,9 @@ func (a *app) nextPDF(token string) (any, error) {
 	}
 	name := a.pending[0]
 	a.pending = a.pending[1:]
-	f, e := os.Open(name)
+	b, e := os.ReadFile(name)
 	if e != nil {
 		return nil, fmt.Errorf("PDF 파일을 읽을 수 없습니다: %w", e)
-	}
-	defer f.Close()
-	b, e := io.ReadAll(io.LimitReader(f, 100*1024*1024+1))
-	if e != nil {
-		return nil, e
-	}
-	if len(b) > 100*1024*1024 {
-		return nil, fmt.Errorf("100 MB 이하의 PDF를 선택해 주세요.")
 	}
 	return map[string]any{"name": filepath.Base(name), "bytes": b}, nil
 }
