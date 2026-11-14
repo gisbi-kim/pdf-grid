@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const lib = window.PDFLib, core = window.PDFGridTools;
 let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab = 'merge', busy = false;
 const MAX_BYTES = 100 * 1024 * 1024;
-const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.4.4' : '../viewer/?v=1.4.4';
+const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.4.5' : '../viewer/?v=1.4.5';
 function addGridSteppers(view) {
   const frame = view.defaultView;
   const columns = view.getElementById('cols');
@@ -240,6 +240,7 @@ function message(text, error = false) { $('feedback').textContent = text; $('fee
 function clearResults() { outputURLs.forEach(url => URL.revokeObjectURL(url)); outputURLs = []; outputs = []; $('results').hidden = true; $('resultList').replaceChildren(); }
 function setTab(name) {
   activeTab = name;
+  $('reloadPDF').hidden = name !== 'viewer';
   document.querySelector('.documentTabs').hidden = name !== 'viewer';
   for (const tab of document.querySelectorAll('[data-tab]')) tab.setAttribute('aria-pressed', String(tab.dataset.tab === name));
   for (const id of ['merge', 'split', 'viewer', 'local']) $(id).hidden = id !== name;

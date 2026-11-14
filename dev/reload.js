@@ -6,6 +6,9 @@ window.PDFGridReload = (() => {
     const tab = currentTab();
     if (!tab?.hasFile) { location.reload(); return; }
     refreshing = true;
+    const button = document.getElementById('reloadPDF');
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
     const viewer = tab.frame.contentWindow;
     try {
       const state = viewer.gridReloadState();
@@ -30,7 +33,7 @@ window.PDFGridReload = (() => {
       }
     } catch (error) {
       viewer.notice('새로고침하지 못했습니다. 기존 PDF는 유지됩니다. ' + (error.message || '빌드가 끝난 뒤 다시 시도해 주세요.'));
-    } finally { refreshing = false; }
+    } finally { refreshing = false; button.disabled = false; button.removeAttribute('aria-busy'); }
   }
   function bind(doc) {
     if (!window.pdfGridDesktop) return;
@@ -42,5 +45,10 @@ window.PDFGridReload = (() => {
       if (!event.repeat) void refresh();
     }, true);
   }
-  return {setup(getTab, busy) { currentTab = getTab; isBusy = busy; bind(document); }, bind, refresh};
+  return {setup(getTab, busy) {
+    currentTab = getTab; isBusy = busy; bind(document);
+    const button = document.getElementById('reloadPDF');
+    button.title = window.pdfGridDesktop ? '현재 PDF 새로고침 (Ctrl+R / F5)' : '페이지 새로고침';
+    button.onclick = () => { if (window.pdfGridDesktop) void refresh(); else location.reload(); };
+  }, bind, refresh};
 })();

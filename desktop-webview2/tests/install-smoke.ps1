@@ -62,7 +62,7 @@ function ChooseMode($process,[bool]$force){
  }
  throw 'Maintenance page timeout'
 }
-$setup=(Resolve-Path './PDF-Grid-Desktop-Setup-1.4.4.exe').Path
+$setup=(Resolve-Path './PDF-Grid-Desktop-Setup-1.4.5.exe').Path
 $target=Join-Path $env:LOCALAPPDATA 'Programs/pdf-grid-desktop'
 $key='HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\88d3b172-4c13-5732-a92d-3c1735225b00'
 $p=Start-Process $setup -ArgumentList '/S' -PassThru
@@ -79,16 +79,16 @@ $before=(Get-FileHash "$target/PDF-Grid.exe").Hash
 Set-ItemProperty $key DisplayVersion '1.3.3'
 Move-Item "$target/Uninstall.exe" "$target/Uninstall PDF Grid.exe"
 $p=Start-Process $setup -PassThru
-Answer $p 7 '경량 버전 1.4.4으로 교체'
+Answer $p 7 '경량 버전 1.4.5으로 교체'
 if(!$p.WaitForExit(30000)){throw 'Cancelled upgrade did not exit'}
 if((Get-FileHash "$target/PDF-Grid.exe").Hash -ne $before){throw 'No changed existing app'}
 if((Get-ItemProperty $key).DisplayVersion -ne '1.3.3'){throw 'No changed version'}
 $p=Start-Process $setup -PassThru
-Answer $p 6 '경량 버전 1.4.4으로 교체'
+Answer $p 6 '경량 버전 1.4.5으로 교체'
 ChooseMode $p $false
 Answer $p 7 '설치가 완료'
 if(!$p.WaitForExit(60000) -or $p.ExitCode -ne 0){throw 'Upgrade failed'}
-if((Get-ItemProperty $key).DisplayVersion -ne '1.4.4'){throw 'Upgrade did not record version'}
+if((Get-ItemProperty $key).DisplayVersion -ne '1.4.5'){throw 'Upgrade did not record version'}
 Remove-Item "$target/Uninstall PDF Grid.exe" -ErrorAction SilentlyContinue
 $p=Start-Process $setup -PassThru
 Answer $p 7 '다시 설치할까요'
@@ -127,7 +127,7 @@ $rootHash=(Get-FileHash "$target/keep-original.pdf").Hash
 $nestedHash=(Get-FileHash "$target/resources/keep-original.pdf").Hash
 $profileHash=(Get-FileHash "$profile/force-test-session.json").Hash
 $p=Start-Process $setup -PassThru
-Answer $p 6 '경량 버전 1.4.4으로 교체'
+Answer $p 6 '경량 버전 1.4.5으로 교체'
 ChooseMode $p $true
 Answer $p 7 '설치가 완료'
 if(!$p.WaitForExit(30000) -or $p.ExitCode -ne 0){throw 'Force replacement failed'}
@@ -135,6 +135,6 @@ foreach($obsolete in @('Uninstall PDF Grid.exe','PDF Grid.exe','resources/app.as
  if(Test-Path (Join-Path $target $obsolete)){throw "Force cleanup left owned file: $obsolete"}
 }
 if((Get-FileHash "$target/keep-original.pdf").Hash -ne $rootHash -or (Get-FileHash "$target/resources/keep-original.pdf").Hash -ne $nestedHash -or (Get-FileHash "$profile/force-test-session.json").Hash -ne $profileHash){throw 'Force cleanup modified user files or profile'}
-if((Get-ItemProperty $key).DisplayVersion -ne '1.4.4'){throw 'Force update version missing'}
+if((Get-ItemProperty $key).DisplayVersion -ne '1.4.5'){throw 'Force update version missing'}
 if((Get-ItemProperty $key).PSObject.Properties.Name -contains 'QuietUninstallString'){throw 'Stale legacy uninstall command remains'}
 Write-Host 'PASS: force replacement bypasses the actual broken 1.1.0 uninstaller and preserves root PDFs, nested PDFs, and the old user profile'

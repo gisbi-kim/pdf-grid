@@ -51,7 +51,7 @@ func TestNativeUI(t *testing.T) {
 	})
 	os.MkdirAll(profile, 0700)
 	a := &app{token: randomToken(), instanceToken: randomToken()}
-	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.4.4.exe")
+	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.4.5.exe")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +109,7 @@ func TestNativeUI(t *testing.T) {
 				t.Logf("Native viewer fully loaded: %s (CI host, not an Electron comparison)", time.Since(started))
 				return nil
 			}
-			if strings.HasPrefix(stage, "reload-f5:") || strings.HasPrefix(stage, "reload-ctrl-r:") {
+			if strings.HasPrefix(stage, "reload-f5:") || strings.HasPrefix(stage, "reload-ctrl-r:") || strings.HasPrefix(stage, "reload-button:") {
 				parts := strings.SplitN(stage, ":", 2)
 				data, e := base64.StdEncoding.DecodeString(parts[1])
 				if e != nil {
@@ -120,6 +120,9 @@ func TestNativeUI(t *testing.T) {
 				}
 				if e = os.WriteFile(reloadSample, data, 0600); e != nil {
 					return e
+				}
+				if parts[0] == "reload-button" {
+					return nil
 				}
 				// Actual OS keystrokes exercise WebView2 defaults and focused iframes.
 				w.Dispatch(func() {
@@ -195,5 +198,5 @@ func TestNativeUI(t *testing.T) {
 	if err != nil || !strings.HasPrefix(string(b), "%PDF-") {
 		t.Fatalf("Native save: %v", err)
 	}
-	t.Log("PASS actual WebView2: merge, save, split, clipboard, PDF forwarding, rebuilt PDF reload via actual F5/Ctrl+R, keyboard navigation, PDF links/outline, external-link bridge, update UI and verified installer launch handoff")
+	t.Log("PASS actual WebView2: merge, save, split, clipboard, PDF forwarding, rebuilt PDF reload via actual F5/Ctrl+R and the visible refresh button, keyboard navigation, PDF links/outline, external-link bridge, update UI and verified installer launch handoff")
 }

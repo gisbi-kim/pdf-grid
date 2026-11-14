@@ -1,5 +1,6 @@
-PDF Grid 1.4.4 for Windows 10/11 x64
+PDF Grid 1.4.5 for Windows 10/11 x64
 
+- Added a visible ↻ 새로고침 button beside 격자 보기 in the ribbon. It rereads the active PDF with the same behavior as Ctrl+R/F5 and is disabled during refresh. The web edition reloads the browser page.
 - Ctrl+R / F5 rereads the active PDF after a rebuild, preserving tabs and view position. Native file picking and file-association opens retain a refreshable source; generated PDFs redraw from memory. Missing/invalid outputs keep the old document. Empty windows reload the app UI. App upgrades still use the update button.
 - Web release and existing /dev/ now share the same multiple-PDF-tab, merge/split and selection UI as the installed app.
 - DEV shows a nearby “현재 dev 버전과 release 버전이 같습니다.” status instead of navigating; GitHub opens the source repository in the default browser.
