@@ -38,6 +38,14 @@
    const citation=frame.document.querySelectorAll('.sheet')[1].querySelector('.pdfLink');citation.dispatchEvent(new frame.MouseEvent('mouseenter'));
    await until(()=>frame.document.querySelector('#citationCard')?.textContent.includes('Reliable Robot Mapping'));
    if(frame.document.querySelector('#citationCard').textContent.includes('Unrelated'))throw Error('Citation preview included another reference');
+   const card=frame.document.querySelector('#citationCard');
+   if(card.querySelector('.citationCount').textContent!=='1 / 2')throw Error('Grouped citation paging missing');
+   if(card.querySelector('.citationTitle').textContent!=='A Study of Reliable Robot Mapping')throw Error('Citation title was not parsed');
+   card.querySelector('a.doi').click();await sleep(100);
+   card.querySelector('[aria-label="다음 인용"]').click();
+   if(card.querySelector('.citationCount').textContent!=='2 / 2')throw Error('Next reference missing');
+   card.querySelector('a.arxiv').click();await sleep(100);
+   card.querySelector('[aria-label="이전 인용"]').click();
    citation.click();await until(()=>frame.document.querySelector('.sheet.selected .num')?.textContent==='24');
    frame.document.dispatchEvent(new frame.KeyboardEvent('keydown',{key:'[',bubbles:true}));await until(()=>frame.document.querySelector('.sheet.selected .num')?.textContent==='2');
    await nativeTestStage('navigation-forward');await until(()=>frame.document.querySelector('.sheet.selected .num')?.textContent==='24');

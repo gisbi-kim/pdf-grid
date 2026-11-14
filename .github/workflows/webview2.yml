@@ -77,10 +77,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: PDFGrid-1.5.0-Windows-verification
+          name: PDFGrid-1.5.1-Windows-verification
           path: |
             desktop-webview2/PDF-Grid.exe
-            desktop-webview2/PDF-Grid-Desktop-Setup-1.5.0.exe
+            desktop-webview2/PDF-Grid-Desktop-Setup-1.5.1.exe
             desktop-webview2/tests/*.png
             desktop-webview2/tests/startup.json
             desktop-webview2/benchmark/provenance.json
@@ -93,9 +93,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          Copy-Item PDF-Grid-Desktop-Setup-1.5.0.exe PDF-Grid-Setup.exe
+          Copy-Item PDF-Grid-Desktop-Setup-1.5.1.exe PDF-Grid-Setup.exe
           Copy-Item PDF-Grid.exe PDF-Grid-Portable.exe
-          Get-FileHash PDF-Grid-Setup.exe,PDF-Grid-Portable.exe,PDF-Grid-Desktop-Setup-1.5.0.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $([IO.Path]::GetFileName($_.Path))" } | Set-Content -Encoding ascii SHA256SUMS.txt
-          $tag="desktop-v1.5.0-build.$env:GITHUB_RUN_NUMBER"
-          gh release create $tag PDF-Grid-Setup.exe PDF-Grid-Portable.exe PDF-Grid-Desktop-Setup-1.5.0.exe SHA256SUMS.txt --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title 'PDF Grid 1.5.0 - Lightweight Windows app' --notes-file RELEASE-NOTES.md --latest
+          Get-FileHash PDF-Grid-Setup.exe,PDF-Grid-Portable.exe,PDF-Grid-Desktop-Setup-1.5.1.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $([IO.Path]::GetFileName($_.Path))" } | Set-Content -Encoding ascii SHA256SUMS.txt
+          $tag="desktop-v1.5.1-build.$env:GITHUB_RUN_NUMBER"
+          gh release create $tag PDF-Grid-Setup.exe PDF-Grid-Portable.exe PDF-Grid-Desktop-Setup-1.5.1.exe SHA256SUMS.txt --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title 'PDF Grid 1.5.1 - Lightweight Windows app' --notes-file RELEASE-NOTES.md --latest
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
