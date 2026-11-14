@@ -1,19 +1,13 @@
-# PDF Grid Dev
+# PDF Grid shared UI
 
-Live: https://gisbi-kim.github.io/pdf-grid/dev/
+The release at https://gisbi-kim.github.io/pdf-grid/ and the existing `/dev/` URL now use the same UI as the Windows app. Both default to the grid viewer with multiple PDF tabs, merge/split tools, embedded PDF links and bookmarks, text selection, and area image copying.
 
-An isolated merge/split workspace. The root viewer is reused in an iframe and its source remains unchanged.
+`dev/` contains the shared shell, tools and local vendor dependencies. `viewer/index.html` contains the embedded grid viewer (including PDF.js). The DEV control displays a nearby version-status popover on hover, focus or click; it no longer navigates to a separate edition. GitHub opens the source repository in a new browser tab or the desktop default browser.
 
-- Merge PDFs, reorder files, and select each file's page ranges.
-- Extract selected pages or split into ranges separated by semicolons.
-- Split every page and download individual PDFs or a single ZIP.
-- Generate sample PDFs locally to try both tools without uploading files.
-- Open results in the existing grid viewer.
+Edit these shared sources, then run `python scripts/sync-ui.py`. This generates the root release entry (using `dev/` as its base URL) and the bundled `desktop-webview2/web/` assets. Native builds run `python scripts/sync-ui.py --check` to reject drift. Do not edit generated UI files directly.
 
-Files are processed entirely in the browser. Dependencies are vendored (pdf-lib 1.17.1, JSZip 3.10.1); no third-party network requests are required. Editing inputs are held in memory. Opening results in the viewer uses the viewer's existing IndexedDB persistence. Encrypted PDFs are rejected. Input size is limited to 100 MB per split file / merge batch. Page content, size and rotation are copied; document-level bookmarks, signatures and interactive forms are not guaranteed to survive page copying.
+Browser output uses PDF/ZIP downloads and the browser clipboard API. Windows uses native save dialogs and the native image clipboard. Browser clipboard permission and a secure context are required for area copying. Native update controls and OS file associations are available only in the installed app. Local documents are never uploaded; browser storage and the installed app profile remain separate.
 
-Run core checks: `node dev/tests/core.test.cjs`
+Run checks: `node --test dev/tests/*.test.cjs` and `python scripts/sync-ui.py --check`.
 
-Manual QA: sample merge, reorder and select a range, verify the resulting grid; sample split by ranges and one page per file; ZIP download; invalid ranges; narrow viewport layout.
-
-Dependency licenses are in `vendor/`.
+Dependencies: pdf-lib 1.17.1, JSZip 3.10.1 and PDF.js 3.11.174, bundled locally with their licenses. Editing inputs are held in memory, limited to 100 MB per split file / merge batch. Encrypted editing inputs are rejected. Page content, size and rotation are copied; document bookmarks, signatures and interactive forms may not survive copying.

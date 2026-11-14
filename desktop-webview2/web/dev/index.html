@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>PDF Grid</title><link rel="stylesheet" href="style.css?v=local-guide-1"><script src="/_desktop/bridge.js"></script><script defer src="vendor/pdf-lib.min.js"></script><script defer src="vendor/jszip.min.js"></script><script defer src="core.js"></script><script defer src="app.js?v=touch-zoom-1"></script><script defer src="update-ui.js"></script></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PDF Grid</title><link rel="stylesheet" href="style.css?v=1.4.3"><script src="/_desktop/bridge.js"></script><script defer src="vendor/pdf-lib.min.js"></script><script defer src="vendor/jszip.min.js"></script><script defer src="core.js"></script><script defer src="app.js?v=1.4.3"></script><script defer src="shell-ui.js?v=1.4.3"></script><script defer src="update-ui.js"></script></head>
 <body>
 <nav class="appRibbon" aria-label="PDF 도구">
   <div class="brand">PDF <span>Grid</span></div>
@@ -12,7 +12,13 @@
     <button id="addPDFTab" type="button" title="새 PDF 탭 열기" aria-label="새 PDF 탭 열기">+</button>
     <input id="tabFiles" type="file" accept="application/pdf,.pdf" multiple hidden>
   </div>
+  <div class="appLinks">
+    <button id="devStatus" type="button" aria-describedby="versionStatus" aria-expanded="false">DEV</button>
+    <a id="githubLink" href="https://github.com/gisbi-kim/pdf-grid" target="_blank" rel="noopener noreferrer" aria-label="GitHub 저장소 열기">GitHub ↗</a>
+    <a id="desktopDownload" href="https://github.com/gisbi-kim/pdf-grid/releases/latest/download/PDF-Grid-Setup.exe" title="Windows 설치 파일 다운로드">설치 ↓</a>
+  </div>
 </nav>
+<div id="versionStatus" role="status" hidden>현재 dev 버전과 release 버전이 같습니다.</div>
 <main id="workspace">
 
 <section id="merge" class="panel">

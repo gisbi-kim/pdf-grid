@@ -1,5 +1,8 @@
-PDF Grid 1.4.2 for Windows 10/11 x64
+PDF Grid 1.4.3 for Windows 10/11 x64
 
+- Web release and existing /dev/ now share the same multiple-PDF-tab, merge/split and selection UI as the installed app.
+- DEV shows a nearby “현재 dev 버전과 release 버전이 같습니다.” status instead of navigating; GitHub opens the source repository in the default browser.
+- Shared source generation and a CI parity check prevent web/native UI drift. Browser downloads/clipboard and native save/update integration remain platform-specific.
 - Fixed left/right navigation getting stuck at fractional row boundaries and near the last page.
 - PDF links now work: internal page destinations, named destinations, document outline (목차), and external web links opened in the default browser. This requires embedded links/bookmarks in the PDF.
 - Added a blue circular 최신 버전 확인 button. Check online, then confirm download/reinstall; setup is launched only after SHA256 verification. Offline errors leave the current app usable.

@@ -3,9 +3,9 @@ const $ = id => document.getElementById(id);
 const lib = window.PDFLib, core = window.PDFGridTools;
 let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab = 'merge', busy = false;
 const MAX_BYTES = 100 * 1024 * 1024;
-const GRID_VIEWER_URL = '../?v=touch-zoom-1';
+const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.4.3' : '../viewer/?v=1.4.3';
 function addGridSteppers(view) {
-  const frame = $('gridFrame').contentWindow;
+  const frame = view.defaultView;
   const columns = view.getElementById('cols');
   const totalRows = view.getElementById('rows');
   const gridGroup = columns.closest('.group');
@@ -51,8 +51,8 @@ function addGridSteppers(view) {
 
 // Only the viewer embedded in DEV gets this layout. Moving the existing nodes
 // preserves the viewer's file-open handlers and filename updates.
-function compactGridViewer() {
-  const view = $('gridFrame').contentDocument;
+function compactGridViewer(frame) {
+  const view = frame.contentDocument;
   if (!view || view.documentElement.classList.contains('embeddedGrid')) return;
   const toolbar = view.getElementById('toolbar');
   const filename = view.getElementById('filename');
@@ -67,36 +67,36 @@ function compactGridViewer() {
   const style = view.createElement('style');
   style.textContent = `
     .embeddedGrid header { display:none }
-    .embeddedGrid .toolbar { min-height:54px; padding:8px 14px; gap:10px; flex-wrap:wrap }
-    .embeddedGrid .group { gap:6px; font-size:12px; flex-shrink:0 }
-    .embeddedGrid button { padding:7px 9px; font-size:12px }
-    .embeddedGrid input[type=number] { width:44px; padding:6px; font-size:12px }
-    .embeddedGrid #page { width:48px }
-    .embeddedGrid .gridDimensions { gap:12px }
-    .embeddedGrid .gridStepper { display:flex; align-items:center; gap:4px; white-space:nowrap }
-    .embeddedGrid .gridStepper label { margin-right:3px; color:#bdc7cf }
-    .embeddedGrid .gridStepper button { width:28px; min-height:30px; padding:4px; font-size:16px; line-height:20px }
-    .embeddedGrid .gridStepper input { width:36px; text-align:center; appearance:textfield }
-    .embeddedGrid .gridStepper input::-webkit-inner-spin-button, .embeddedGrid .gridStepper input::-webkit-outer-spin-button { appearance:none; margin:0 }
-
-    .embeddedGrid .divider, .embeddedGrid .spacer { display:none }
-    .embeddedGrid .toolbar > .group > .label { display:none }
-    .embeddedGrid .documentGroup { flex:0 1 230px; min-width:160px }
-    .embeddedGrid #filename { flex:1; min-width:0; font-size:12px; max-width:200px }
-    .embeddedGrid #open { flex-shrink:0 }
-    .embeddedGrid .searchGroup { flex:1 1 260px; min-width:230px; width:auto; flex-wrap:nowrap }
-    .embeddedGrid .searchGroup input { flex:1; width:140px; min-width:80px; padding:6px; font-size:12px }
-    .embeddedGrid #searchCount { min-width:40px; max-width:96px; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
-    .embeddedGrid #zoomLabel { width:42px }
-    @media(max-width:1050px) {
-      .embeddedGrid .documentGroup { flex:1 1 230px }
-      .embeddedGrid .searchGroup { flex:1 1 290px }
+    .embeddedGrid .toolbar {
+      min-height: 38px;
+      padding: 4px 9px;
+      gap: 9px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: thin;
     }
-    @media(max-width:600px) {
-      .embeddedGrid .toolbar { padding:8px 10px; gap:8px }
-      .embeddedGrid .documentGroup { flex:1 1 100% }
-      .embeddedGrid #filename { max-width:none }
-      .embeddedGrid .searchGroup { flex-basis:100% }
+    .embeddedGrid .group { gap: 4px; font-size: 12px; flex-shrink: 0 }
+    .embeddedGrid button { padding: 3px 6px; font-size: 12px; min-height: 26px }
+    .embeddedGrid input[type=number] { width: 36px; padding: 3px; font-size: 12px }
+    .embeddedGrid #page { width: 40px }
+    .embeddedGrid .gridDimensions { order: -3; gap: 8px }
+    .embeddedGrid .gridStepper { display: flex; align-items: center; gap: 3px; white-space: nowrap }
+    .embeddedGrid .gridStepper label { margin-right: 2px; color: #bdc7cf }
+    .embeddedGrid .gridStepper button { width: 24px; padding: 1px; font-size: 14px }
+    .embeddedGrid .gridStepper input { width: 30px; text-align: center; appearance: textfield }
+    .embeddedGrid .gridStepper input::-webkit-inner-spin-button,
+    .embeddedGrid .gridStepper input::-webkit-outer-spin-button { appearance: none; margin: 0 }
+    .embeddedGrid .divider, .embeddedGrid .spacer, .embeddedGrid .toolbar > .group > .label { display: none }
+    .embeddedGrid .documentGroup { order: -2; flex: 0 1 160px; min-width: 76px }
+    .embeddedGrid #filename { min-width: 0; font-size: 12px }
+    .embeddedGrid #open { flex-shrink: 0 }
+    .embeddedGrid .searchGroup { order: -2; flex: 0 0 auto; width: auto; flex-wrap: nowrap }
+    .embeddedGrid .searchGroup input { flex: 0 0 auto; width: 100px; min-width: 0; padding: 4px; font-size: 12px }
+    .embeddedGrid #searchCount { flex: 0 0 auto; font-size: 11px; white-space: nowrap }
+    .embeddedGrid #zoomLabel { width: 36px }
+    @media (max-width: 760px) {
+      .embeddedGrid .documentGroup { flex-basis: 95px }
+      .embeddedGrid .searchGroup input { width: 88px }
     }
   `;
   view.head.append(style);
@@ -105,12 +105,124 @@ function compactGridViewer() {
   labelFilename();
   new MutationObserver(labelFilename).observe(filename, {childList:true, characterData:true, subtree:true});
 }
-$('gridFrame').addEventListener('load', compactGridViewer);
+const pdfTabs = [];
+let activePdfTab;
+let nextPdfTab = 0;
+
+function activatePdfTab(tab, focus = false) {
+  activePdfTab = tab;
+  for (const item of pdfTabs) {
+    const selected = item === tab;
+    item.button.setAttribute('aria-selected', selected);
+    item.button.tabIndex = selected ? 0 : -1;
+    item.panel.setAttribute('aria-hidden', !selected);
+    item.panel.inert = !selected;
+  }
+  if (focus) tab.button.focus();
+}
+
+function createPdfTab() {
+  const id = ++nextPdfTab;
+  const tab = {
+    frame: document.createElement('iframe'),
+    panel: document.createElement('div'),
+    item: document.createElement('div'),
+    button: document.createElement('button'),
+    close: document.createElement('button'),
+    hasFile: false,
+  };
+  tab.frame.title = 'PDF Grid 격자 뷰어';
+  tab.panel.className = 'pdfTabPanel';
+  tab.panel.id = 'pdf-panel-' + id;
+  tab.panel.setAttribute('role', 'tabpanel');
+  tab.panel.setAttribute('aria-labelledby', 'pdf-tab-' + id);
+  tab.item.className = 'pdfTab';
+  tab.button.id = 'pdf-tab-' + id;
+  tab.button.setAttribute('role', 'tab');
+  tab.button.setAttribute('aria-controls', tab.panel.id);
+  tab.button.onclick = () => activatePdfTab(tab, true);
+  tab.close.textContent = '×';
+  tab.close.onclick = () => {
+    const index = pdfTabs.indexOf(tab);
+    pdfTabs.splice(index, 1);
+    $('pdfTabList').style.setProperty('--pdf-tab-count', pdfTabs.length);
+    tab.item.remove();
+    tab.panel.remove();
+    if (activePdfTab === tab) activatePdfTab(pdfTabs[index] || pdfTabs[index - 1] || createPdfTab(), true);
+  };
+  function setName(name) {
+    tab.button.textContent = tab.button.title = name;
+    tab.close.setAttribute('aria-label', name + ' 닫기');
+  }
+  setName('새 탭');
+  tab.ready = new Promise(resolve => {
+    tab.frame.addEventListener('load', () => {
+      compactGridViewer(tab.frame);
+      const view = tab.frame.contentDocument;
+      const filename = view.getElementById('filename');
+      if (filename) {
+        const syncName = () => {
+          if (!view.getElementById('stage').classList.contains('ready')) return;
+          tab.hasFile = true;
+          setName(filename.textContent);
+        };
+        new MutationObserver(syncName).observe(filename, {childList: true, characterData: true, subtree: true});
+        syncName();
+      }
+      resolve();
+    }, {once: true});
+  });
+  tab.frame.src = GRID_VIEWER_URL + '&desktop=tab' + (!window.pdfGridDesktop && id === 1 ? '&restore=1' : '');
+  tab.panel.append(tab.frame);
+  tab.item.append(tab.button, tab.close);
+  pdfTabs.push(tab);
+  $('pdfTabList').style.setProperty('--pdf-tab-count', pdfTabs.length);
+  $('pdfTabList').append(tab.item);
+  $('pdfTabPanels').append(tab.panel);
+  return tab;
+}
+
+$('pdfTabList').addEventListener('keydown', event => {
+  if (event.target.getAttribute('role') !== 'tab') return;
+  if (event.key === 'Delete') {
+    event.preventDefault();
+    activePdfTab.close.click();
+    return;
+  }
+  const current = pdfTabs.indexOf(activePdfTab);
+  const targets = {
+    ArrowLeft: (current + pdfTabs.length - 1) % pdfTabs.length,
+    ArrowRight: (current + 1) % pdfTabs.length,
+    Home: 0,
+    End: pdfTabs.length - 1,
+  };
+  if (!Object.hasOwn(targets, event.key)) return;
+  event.preventDefault();
+  activatePdfTab(pdfTabs[targets[event.key]], true);
+});
+$('addPDFTab').onclick = () => $('tabFiles').click();
+$('tabFiles').onchange = event => {
+  void window.openPdfTabs([...event.target.files]);
+  event.target.value = '';
+};
+window.openPdfTabs = async files => {
+  const valid = [...files].filter(file => file && (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)));
+  if (!valid.length) return;
+  setTab('viewer');
+  for (const file of valid) {
+    const tab = activePdfTab?.hasFile ? createPdfTab() : activePdfTab || createPdfTab();
+    tab.hasFile = true;
+    activatePdfTab(tab);
+    await tab.ready;
+    if (pdfTabs.includes(tab)) await tab.frame.contentWindow.openFile(file);
+  }
+};
 
 function message(text, error = false) { $('feedback').textContent = text; $('feedback').classList.toggle('error', error); }
 function clearResults() { outputURLs.forEach(url => URL.revokeObjectURL(url)); outputURLs = []; outputs = []; $('results').hidden = true; $('resultList').replaceChildren(); }
 function setTab(name) {
   activeTab = name;
+  document.querySelector('.documentTabs').hidden = name !== 'viewer';
   for (const tab of document.querySelectorAll('[data-tab]')) tab.setAttribute('aria-pressed', String(tab.dataset.tab === name));
   for (const id of ['merge', 'split', 'viewer', 'local']) $(id).hidden = id !== name;
   const readingOnly = name === 'viewer' || name === 'local';
@@ -118,7 +230,7 @@ function setTab(name) {
   $('feedback').hidden = readingOnly;
   window.scrollTo(0, 0);
   if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
-  if (name === 'viewer' && !$('gridFrame').getAttribute('src')) $('gridFrame').src = GRID_VIEWER_URL;
+  if (name === 'viewer' && !activePdfTab) activatePdfTab(createPdfTab());
   $('viewer').style.top = document.querySelector('nav').getBoundingClientRect().bottom + 'px';
 }
 async function run(task) {
@@ -198,16 +310,19 @@ function showResults(files) {
     const row = document.createElement('div'); row.className = 'resultRow';
     const title = document.createElement('span'); title.className = 'resultName'; title.textContent = `${file.name} · ${humanSize(file.bytes.length)}`;
     const link = document.createElement('a'); link.className = 'download'; link.textContent = 'PDF 받기 ↓'; link.download = file.name; link.href = URL.createObjectURL(new Blob([file.bytes], {type: 'application/pdf'})); outputURLs.push(link.href);
+    link.onclick = event => {
+      if (!window.pdfGridDesktop?.saveResult) return;
+      event.preventDefault();
+      if (!busy) run(async () => {
+        if (await window.pdfGridDesktop.saveResult(file.name, file.bytes)) message('PDF 파일을 저장했습니다.');
+      });
+    };
     row.append(title, button('격자로 보기', `${file.name} 격자로 보기`, () => run(() => preview(file))), link); $('resultList').append(row);
   }
   message('완료했습니다. 파일을 받거나 격자 보기에서 결과를 확인하세요.'); $('results').scrollIntoView({behavior: 'smooth', block: 'nearest'});
 }
 async function preview(file) {
-  const frame = $('gridFrame');
-  if (!frame.contentWindow?.openFile) {
-    await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('뷰어를 불러오지 못했습니다. PDF를 다운로드해 확인해 주세요.')), 20000); frame.addEventListener('load', () => { clearTimeout(timer); resolve(); }, {once: true}); if (!frame.getAttribute('src')) frame.src = GRID_VIEWER_URL; });
-  }
-  setTab('viewer'); await frame.contentWindow.openFile(new File([file.bytes], file.name, {type: 'application/pdf'}));
+  await window.openPdfTabs([new File([file.bytes], file.name, {type: 'application/pdf'})]);
 }
 async function sample(name, count, color) {
   const doc = await lib.PDFDocument.create();
@@ -238,7 +353,16 @@ $('splitRun').onclick = () => run(async () => {
 });
 $('downloadAll').onclick = () => run(async () => {
   message('ZIP 파일을 준비하는 중…'); const zip = new JSZip(); outputs.forEach(file => zip.file(file.name, file.bytes));
-  const blob = await zip.generateAsync({type: 'blob'}), link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'pdf-grid-split.zip'; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(link.href), 60000); message('ZIP 다운로드를 시작했습니다.');
+  const bytes = await zip.generateAsync({type: 'uint8array'});
+  if (window.pdfGridDesktop?.saveResult) {
+    if (await window.pdfGridDesktop.saveResult('pdf-grid-split.zip', bytes)) message('ZIP 파일을 저장했습니다.');
+  } else {
+    const url = URL.createObjectURL(new Blob([bytes], {type: 'application/zip'}));
+    const link = document.createElement('a'); link.href = url; link.download = 'pdf-grid-split.zip';
+    document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    message('ZIP 파일을 다운로드했습니다.');
+  }
 });
 $('mergeDemo').onclick = () => run(async () => { const a = await sample('Sample-A', 3, [.25, .4, .24]), b = await sample('Sample-B', 2, [.2, .32, .48]); await addMerge([a, b]); });
 $('splitDemo').onclick = () => run(async () => chooseSplit(await sample('Sample-5-pages', 5, [.25, .4, .24])));
@@ -252,4 +376,27 @@ window.addEventListener('resize', () => { $('viewer').style.top = document.query
 if (!lib || !core || !window.JSZip) { message('PDF 도구를 불러오지 못했습니다. 페이지를 새로고침해 주세요.', true); document.querySelectorAll('button').forEach(el => el.disabled = true); } else refresh();
 
 window.addEventListener('hashchange', () => { if (!busy && ['merge', 'split', 'viewer', 'local'].includes(location.hash.slice(1))) setTab(location.hash.slice(1)); });
-setTab(['merge', 'split', 'viewer', 'local'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'merge');
+setTab(['merge', 'split', 'viewer', 'local'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'viewer');
+
+if (window.pdfGridDesktop) {
+  let reading = false;
+  let requested = false;
+  async function openPendingPDFs() {
+    requested = true;
+    if (reading) return;
+    reading = true;
+    try {
+      do {
+        requested = false;
+        let file;
+        while ((file = await window.pdfGridDesktop.getStartupPDF())) await preview(file);
+      } while (requested);
+    } catch (error) {
+      message(error.message, true);
+    } finally {
+      reading = false;
+    }
+  }
+  window.pdfGridDesktop.onPDFOpenRequested(openPendingPDFs);
+  void openPendingPDFs();
+}
