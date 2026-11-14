@@ -51,7 +51,7 @@ func TestNativeUI(t *testing.T) {
 	})
 	os.MkdirAll(profile, 0700)
 	a := &app{token: randomToken(), instanceToken: randomToken()}
-	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.4.3.exe")
+	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.4.4.exe")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,10 +102,41 @@ func TestNativeUI(t *testing.T) {
 		result <- "ok"
 		return nil
 	}
+	var reloadSample string
 	windowTestHook = func(w webview.WebView) {
 		w.Bind("nativeTestStage", func(stage string) error {
 			if stage == "ready" {
 				t.Logf("Native viewer fully loaded: %s (CI host, not an Electron comparison)", time.Since(started))
+				return nil
+			}
+			if strings.HasPrefix(stage, "reload-f5:") || strings.HasPrefix(stage, "reload-ctrl-r:") {
+				parts := strings.SplitN(stage, ":", 2)
+				data, e := base64.StdEncoding.DecodeString(parts[1])
+				if e != nil {
+					return e
+				}
+				if e = os.Remove(reloadSample); e != nil {
+					return e
+				}
+				if e = os.WriteFile(reloadSample, data, 0600); e != nil {
+					return e
+				}
+				// Actual OS keystrokes exercise WebView2 defaults and focused iframes.
+				w.Dispatch(func() {
+					user32.NewProc("SetForegroundWindow").Call(uintptr(w.Window()))
+					if parts[0] == "reload-ctrl-r" {
+						user32.NewProc("keybd_event").Call(0x11, 0, 0, 0)
+					}
+					key := uintptr(0x74)
+					if parts[0] == "reload-ctrl-r" {
+						key = 0x52
+					}
+					user32.NewProc("keybd_event").Call(key, 0, 0, 0)
+					user32.NewProc("keybd_event").Call(key, 0, 2, 0)
+					if parts[0] == "reload-ctrl-r" {
+						user32.NewProc("keybd_event").Call(0x11, 0, 2, 0)
+					}
+				})
 				return nil
 			}
 			if strings.HasPrefix(stage, "second:") {
@@ -114,6 +145,7 @@ func TestNativeUI(t *testing.T) {
 					return e
 				}
 				sample := filepath.Join(t.TempDir(), "startup-test.pdf")
+				reloadSample = sample
 				if e = os.WriteFile(sample, data, 0600); e != nil {
 					return e
 				}
@@ -163,5 +195,5 @@ func TestNativeUI(t *testing.T) {
 	if err != nil || !strings.HasPrefix(string(b), "%PDF-") {
 		t.Fatalf("Native save: %v", err)
 	}
-	t.Log("PASS actual WebView2: merge, save, split, clipboard, PDF forwarding, keyboard navigation, PDF links/outline, external-link bridge, update UI and verified installer launch handoff")
+	t.Log("PASS actual WebView2: merge, save, split, clipboard, PDF forwarding, rebuilt PDF reload via actual F5/Ctrl+R, keyboard navigation, PDF links/outline, external-link bridge, update UI and verified installer launch handoff")
 }

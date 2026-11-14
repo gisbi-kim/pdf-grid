@@ -4,6 +4,7 @@ PDF 여러 페이지를 마지막 페이지까지 연속 격자로 펼쳐 보는
 
 **실행:** https://gisbi-kim.github.io/pdf-grid/
 
+- 설치판: Ctrl+R / F5로 다시 빌드된 현재 PDF를 불러오기 (탭·보기 위치 유지)
 - 여러 PDF를 탭으로 열고 전환·닫기
 - PDF 합치기·쪽 범위 추출·분리 및 PDF/ZIP 다운로드
 - 텍스트 선택·영역 이미지 복사 (브라우저 클립보드 권한 필요)
@@ -36,7 +37,8 @@ PDF 파일은 브라우저 안에서 처리되며 서버로 업로드되지 않�
 | 버전 | 변경 | 호환성·제약 |
 | --- | --- | --- |
 | [1.4.2](https://github.com/gisbi-kim/pdf-grid/releases/tag/desktop-v1.4.2-build.16) | Windows 행 이동·PDF 링크·목차·업데이트 확인 | 기존 웹 기본 화면과 별도 UI |
-| 1.4.3 | 설치판 UI를 웹 기본 화면에 통합, DEV 상태 안내·GitHub 버튼, 공유 UI 생성·검사 | 브라우저에는 OS 파일 연결·설치판 업데이트 기능 없음 |
+| [1.4.3](https://github.com/gisbi-kim/pdf-grid/releases/tag/desktop-v1.4.3-build.18) | 설치판 UI를 웹 기본 화면에 통합, DEV 상태 안내·GitHub 버튼, 공유 UI 생성·검사 | 브라우저에는 OS 파일 연결·설치판 업데이트 기능 없음 |
+| 1.4.4 | 설치판 Ctrl+R/F5로 PDF 원본 다시 읽기, 탭·보기 위치 유지 | 파일 없는 화면은 앱 UI 새로고침, 앱 바이너리 업데이트는 기존 업데이트 버튼 사용 |
 
 ## Windows app
 
