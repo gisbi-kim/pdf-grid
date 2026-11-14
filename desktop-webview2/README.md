@@ -1,4 +1,4 @@
-# PDF Grid 1.4.6 — Windows 경량 버전
+# PDF Grid 1.5.0 — Windows 경량 버전
 
 1.4.1은 설치 방식 화면에 **기존 프로그램 강제 정리 후 재설치**를 추가합니다. 제공받은 1.1.0 설치 파일 자체의 CRC는 정상이나, 포함된 제거 프로그램의 저장 CRC는 `0e68a969`, 실제 계산값은 `456ea5df`로 불일치합니다. 강제 모드는 이 제거 프로그램을 실행하지 않고 `force-cleanup.nsh`의 정확한 프로그램 파일 81개와 해당 앱의 등록 정보만 정리합니다. 폴더를 재귀적으로 삭제하거나 확장자 와일드카드로 지우지 않습니다. 드라이브 루트·개인/시스템 기본 폴더·연결 폴더는 거부합니다. PDF 파일과 사용자 프로필 보존은 실제 손상된 1.1.0 제거 파일을 넣은 Windows 테스트에서 확인했습니다.
 
@@ -63,3 +63,13 @@ The ribbon shows **↻ 새로고침** beside 격자 보기 while the viewer is s
 Opening a PDF in another tab leaves a visible viewer at its current size, position and maximized state. Only a genuinely minimized viewer is restored, using Windows' saved placement. File picker completion also returns focus without resetting the window. A second launcher can grant foreground activation to the existing viewer before forwarding its files; Windows activation restrictions still apply.
 
 Native regression coverage opens PDFs through both a second executable and the actual file dialog. It checks manually sized and maximized windows, plus normal/maximized windows reopened from minimization, using exact window rectangles and show-state checks.
+
+## 1.5.0 persistent reading workspace
+
+The native window saves/restores its WINDOWPLACEMENT, including normal geometry and maximization. Minimized exits reopen visibly in the preceding normal/maximized state, and missing-monitor placements fall back to the current screen. A window subclass handles close by flushing the tab session first, with a timeout for an unresponsive page. Mouse browser commands are routed to the active PDF's reading history.
+
+WebView2 IndexedDB stores opened PDF snapshots; local storage stores tab order, active tab, each grid view and navigation history. Native source IDs/path mappings are persisted in `pdf-sources.json` in the existing profile directory, so restored native PDFs reread their current disk bytes. Missing or temporarily invalid originals fall back to the cached snapshot with a notice. Closing a tab removes its PDF cache. Generated PDFs are also restorable. Passwords are not saved. Existing 1.4.x tabs cannot be imported because those versions never persisted them: reopen PDFs once after the initial upgrade.
+
+Internal PDF links, bookmarks and explicit page-number jumps enter a bounded per-tab history. `[` / `]`, mouse back/forward and footer controls move between exact prior views. Footer controls name the previous/next pages. Editing inputs retain normal bracket typing. Citation hover/focus previews reference text from the PDF without network metadata requests; unsupported/ambiguous links do not invent paper details.
+
+Validation includes separate native process phases for normal/maximized close and restart, native browser-command navigation, citation extraction, browser profile restart, cached missing-file recovery, and existing installer/refresh/window-state checks.

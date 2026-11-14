@@ -16,7 +16,7 @@
 .copyModes button[aria-pressed=true] { color: #c7f481; border-color: #71874e; }
 
 .pdfLinkLayer{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}.pdfLinkLayer a{position:absolute;display:block;pointer-events:auto;cursor:pointer}.pdfLinkLayer a:hover,.pdfLinkLayer a:focus-visible{outline:2px solid #549fff;background:#549fff18;border-radius:2px}#stage[data-mode=text] .pdfLinkLayer a,#stage[data-mode=area] .pdfLinkLayer a{pointer-events:none}#pdfOutline{position:fixed;left:12px;width:min(340px,calc(100vw - 24px));overflow:auto;z-index:20;background:#20252b;border:1px solid #607647;border-radius:8px;padding:12px 16px;box-shadow:0 6px 24px #0008;font-size:13px;line-height:1.6}#pdfOutline ul{list-style:none;padding-left:14px;margin:0}#pdfOutline>ul{padding-left:0}#pdfOutline li{margin:4px 0}#pdfOutline .pdfLink{display:block;color:#d1eaa9;text-decoration:none;padding:3px 4px;border-radius:3px}#pdfOutline .pdfLink:hover,#pdfOutline .pdfLink:focus-visible{background:#344433;outline:1px solid #71874e}
-</style></head><body>
+</style><link rel="stylesheet" href="reading.css?v=1.5.0"><script src="history.js?v=1.5.0"></script><script src="reading-tools.js?v=1.5.0"></script><script src="citations.js?v=1.5.0"></script></head><body>
 <header><div class="brand">PDF <span>Grid</span></div><div id="filename">여러 페이지를 한눈에, 자유롭게.</div><a class="devLink" href="../" target="_top" title="PDF 합치기·분리하기와 로컬 앱 안내">DEV ↗</a><button class="primary" id="open">PDF 열기 ↗</button><input id="file" type="file" accept="application/pdf,.pdf" hidden></header>
 <div class="toolbar" id="toolbar"><div class="group"><span class="label">격자</span><label>열 <input id="cols" type="number" min="1" max="10" value="2" aria-label="격자 열 수"></label><span>×</span><span>행 <output id="rows" aria-label="자동 행 수">자동</output></span></div><div class="divider"></div><div class="group"><button id="prev" title="이전 행 (←)">←</button><input id="page" type="number" min="1" value="1" aria-label="시작 페이지"><span id="total">/ —</span><button id="next" title="다음 행 (→)">→</button></div><div class="group searchGroup" role="search" aria-label="PDF 본문 검색"><input id="searchInput" type="search" placeholder="본문 검색 (Ctrl/⌘+F)" aria-label="PDF 본문 검색" autocomplete="off"><span id="searchCount" role="status" aria-live="polite">PDF를 열어 주세요</span><button id="searchPrev" title="이전 검색 결과 (Shift+Enter)" aria-label="이전 검색 결과" disabled>↑</button><button id="searchNext" title="다음 검색 결과 (Enter)" aria-label="다음 검색 결과" disabled>↓</button><button id="searchClear" title="검색 지우기 (Esc)" aria-label="검색 지우기">×</button></div><div class="spacer"></div><div class="group"><button id="minus" aria-label="축소">−</button><span id="zoomLabel">100%</span><button id="plus" aria-label="확대">+</button><button id="fit" title="화면 맞춤 (0)">화면 맞춤</button><button id="fullscreen" title="전체 화면">⛶</button></div></div>
 <main id="stage" tabindex="0" aria-label="PDF 작업 영역: 한 손가락으로 이동, 두 손가락으로 확대·축소, Ctrl 또는 Command와 휠로 확대"><div id="world"></div><div id="empty"><div class="welcome"><div class="icon">PDF</div><h1>페이지를 펼쳐 보세요.</h1><p>PDF를 여기에 끌어다 놓으세요.<br>기본 2열로 마지막 페이지까지 펼치고, 스크롤하며 읽으세요.</p><button class="primary" id="openEmpty">파일 선택</button><div class="hints"><span><kbd>휠</kbd> 스크롤</span><span><kbd>드래그</kbd> 이동</span><span><kbd>두 손가락</kbd> 확대·축소</span><span><kbd>Ctrl/⌘ + 휠</kbd> 확대·축소</span></div></div></div></main><div id="drop">PDF 파일을 놓아서 열기</div><div id="toast" role="alert"></div><footer><span id="status" role="status">준비됨 · 마지막 PDF는 이 브라우저에 저장됩니다.</span><span class="footerHint">더블클릭: 해당 페이지 확대 · 0: 화면 맞춤</span></footer>
@@ -51,6 +51,7 @@ let doc=null,loadingTask=null,cols=2,scale=1,fitScale=1,cellW=612,cellH=792,item
 // Store the original file, never page canvases or PDF passwords.
 let storagePromise=null,activeFileKey=null,viewReady=false,storageWarningShown=false;
 const VIEW_KEY='pdf-grid-view-v1';
+let readingTools=null;
 const desktopTab=new URLSearchParams(location.search).get('desktop');
 const persistDocument = !desktopPDFBridge();
 function openPickedFiles(files){
@@ -136,7 +137,7 @@ function zoom(factor,cx=stage.clientWidth/2,cy=stage.clientHeight/2,nextX=cx,nex
 }
 function nearby(item,margin=300){return item.left<stage.scrollLeft+stage.clientWidth+margin&&item.left+item.w*scale>stage.scrollLeft-margin&&item.top<stage.scrollTop+stage.clientHeight+margin&&item.top+item.h*scale>stage.scrollTop-margin}
 function release(item){item.linkLayer?.remove();item.linkLayer=null;item.searchTask?.cancel();item.searchTask=null;item.searchLayer?.remove();item.searchLayer=null;item.searchDivs=null;item.task?.cancel();if(item.canvas){item.canvas.remove();item.canvas.width=0;item.canvas.height=0;item.canvas=null}item.rendered=0;if(!item.task&&item.page){item.page.cleanup();item.page=null}}
-function scheduleRender(){if(!renderFrame)renderFrame=requestAnimationFrame(()=>{renderFrame=0;controls();for(const item of items)if(!nearby(item,900))release(item);renderVisible();paintSearchLayers();saveView()})}
+function scheduleRender(){if(!renderFrame)renderFrame=requestAnimationFrame(()=>{renderFrame=0;controls();readingTools?.viewport();for(const item of items)if(!nearby(item,900))release(item);renderVisible();paintSearchLayers();saveView()})}
 function targetScale(item) {
   const pageScale = scale * item.unitScale;
   // Keep extra samples at normal zoom as well as in reduced previews.
@@ -191,9 +192,17 @@ async function layout(){
     $('status').textContent=`전체 ${doc.numPages}쪽 · ${cols}열 × ${Math.ceil(doc.numPages/cols)}행 · 스크롤 이동 · Ctrl/⌘ + 휠 확대`;
   }catch(e){if(g===generation)notice('페이지를 불러오지 못했습니다: '+e.message)}
 }
-window.gridReloadState=()=>({key:activeFileKey,view:{cols,scale,zoom:scale/fitScale,left:stage.scrollLeft/scale,top:stage.scrollTop/scale}});
+function currentGridView(){return {cols,scale,page:items[selected]&&nearby(items[selected],0)?selected+1:currentPage(),zoom:scale/fitScale,left:stage.scrollLeft/scale,top:stage.scrollTop/scale}}
+function restoreGridView(view,page){
+ cols=Math.max(1,Math.min(10,Math.round(Number(view.cols)||2)));$('cols').value=cols;
+ scale=Math.max(minimumGridScale(),Math.min(fitScale*16,Number(view.scale)||fitScale));position();
+ stage.scrollLeft=Math.max(0,Number(view.left)||0)*scale;stage.scrollTop=Math.max(0,Number(view.top)||0)*scale;
+ if(page){selected=Math.min(items.length-1,Math.max(0,page-1));items.forEach(it=>it.el.classList.toggle('selected',it.index===selected))}
+ controls();scheduleRender();stage.focus({preventScroll:true});
+}
+window.gridReloadState=()=>({key:activeFileKey,view:currentGridView(),navigation:readingTools?.export()});
 async function openFile(file,restored=null){
-  if(!file)return;clearTouch();saveView();viewReady=false;const id=++loadGeneration;$('status').textContent='PDF를 여는 중…';let task;
+  if(!file)return;if($('citationCard'))$('citationCard').hidden=true;clearTouch();saveView();viewReady=false;const id=++loadGeneration;$('status').textContent='PDF를 여는 중…';let task;
   try{
     const data=new Uint8Array(await file.arrayBuffer());if(id!==loadGeneration)return;
     const pending=loadingTask;loadingTask=null;await pending?.destroy();if(id!==loadGeneration)return;
@@ -205,10 +214,12 @@ async function openFile(file,restored=null){
     if(restored?.view){cols=Math.max(1,Math.min(10,Math.round(Number(restored.view.cols)||2)));$('cols').value=cols}
     $('filename').textContent=file.name;$('empty').style.display='none';stage.classList.add('ready');await layout();if(id!==loadGeneration)return;
     if(restored?.view){
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));if(id!==loadGeneration)return;
       const view=restored.view,zoom=Number(view.zoom),absolute=Number(view.scale);scale=Number.isFinite(absolute)&&absolute>0?Math.max(minimumGridScale(),Math.min(fitScale*16,absolute)):fitScale*Math.max(minimumGridScale()/fitScale,Math.min(16,Number.isFinite(zoom)?zoom:1));position();
       stage.scrollLeft=Math.max(0,Number(view.left)||0)*scale;stage.scrollTop=Math.max(0,Number(view.top)||0)*scale;controls();scheduleRender();
     }
-    clearSearch();searchCache=new Map();if($('searchInput').value.trim())runSearch();viewReady=true;saveView();if(persistDocument&&!restored)saveFile(file,activeFileKey,id);stage.focus();return true;
+    if(restored?.view?.page){selected=Math.max(0,Math.min(items.length-1,restored.view.page-1));items.forEach(it=>it.el.classList.toggle('selected',it.index===selected))}
+    clearSearch();searchCache=new Map();if($('searchInput').value.trim())runSearch();viewReady=true;readingTools?.reset(restored?.navigation);saveView();if(persistDocument&&!restored)saveFile(file,activeFileKey,id);stage.focus();return true;
   }catch(e){if(id===loadGeneration){viewReady=!!doc;notice('PDF를 열지 못했습니다: '+e.message);$('status').textContent=doc?'이전 PDF를 유지합니다. 빌드가 끝난 뒤 다시 시도해 주세요.':'다른 PDF를 선택해 주세요.'}return false}finally{if(loadingTask===task)loadingTask=null}
 }
 // PDF link annotations and document-outline destinations.
@@ -221,7 +232,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!outlinePanel.hidde
 function safePDFURL(value){try{const u=new URL(value);return ['https:','http:','mailto:'].includes(u.protocol)?u.href:null}catch{return null}}
 function desktopPDFBridge(){try{return window.pdfGridDesktop||window.parent.pdfGridDesktop}catch{return null}}
 function openPDFExternal(url){const bridge=desktopPDFBridge();if(bridge?.openExternal)return bridge.openExternal(url);window.open(url,'_blank','noopener,noreferrer');return Promise.resolve()}
-async function followPDFDestination(destination,pdf=doc){
+async function followPDFDestination(destination,pdf=doc,sourcePage=null){
   try{
     const dest=typeof destination==='string'?await pdf.getDestination(destination):destination;
     if(!Array.isArray(dest))throw Error('목적지를 찾을 수 없습니다.');
@@ -229,6 +240,7 @@ async function followPDFDestination(destination,pdf=doc){
     if(pdf!==doc)return;
     if(!Number.isInteger(index)||index<0||index>=pdf.numPages)throw Error('잘못된 페이지입니다.');
     const item=items[index],page=await pdf.getPage(index+1);if(pdf!==doc||!item)return;
+    const departure=readingTools?.before();if(departure&&sourcePage!==null)departure.page=sourcePage+1;
     const viewport=page.getViewport({scale:1});item.rawW=viewport.width;item.rawH=viewport.height;item.unitScale=Math.min(cellW/viewport.width,cellH/viewport.height);item.w=viewport.width*item.unitScale;item.h=viewport.height*item.unitScale;position();go(index+1);
     const type=dest[1]?.name;let point=null;
     if(type==='XYZ'&&Number.isFinite(dest[3]))point=viewport.convertToViewportPoint(Number.isFinite(dest[2])?dest[2]:page.view[0],dest[3]);
@@ -236,7 +248,7 @@ async function followPDFDestination(destination,pdf=doc){
     const rowTop=Math.floor(index/cols)===0?0:PAD+Math.floor(index/cols)*(cellH+GAP)*scale;
     if(point)stage.scrollTop=Math.max(rowTop,item.top+point[1]*item.unitScale*scale-24);
     if(item.left<stage.scrollLeft||item.left+item.w*scale>stage.scrollLeft+stage.clientWidth)stage.scrollLeft=Math.max(0,item.left-PAD+(point?point[0]*item.unitScale*scale:0));
-    selected=index;items.forEach(it=>it.el.classList.toggle('selected',it.index===index));showOutline(false);stage.focus({preventScroll:true});controls();scheduleRender();
+    selected=index;items.forEach(it=>it.el.classList.toggle('selected',it.index===index));showOutline(false);stage.focus({preventScroll:true});controls();readingTools?.commit(departure,index+1);scheduleRender();
   }catch{if(pdf===doc)notice('이 PDF 링크의 이동 위치를 찾지 못했습니다.')}
 }
 function makePDFLink(data,pdf,ownerPage){
@@ -244,8 +256,9 @@ function makePDFLink(data,pdf,ownerPage){
   const actionPage=Object.prototype.hasOwnProperty.call(actionPages,data.action)?actionPages[data.action]:null;if(!url&&!data.dest&&!actionPage)return null;
   const link=document.createElement('a');link.className='pdfLink';link.href=url||'#pdf-destination';link.title=url||'문서 안의 연결된 위치로 이동';link.setAttribute('aria-label',data.title||link.title);link.draggable=false;
   if(url){link.target='_blank';link.rel='noopener noreferrer'}
-  const activate=()=>url?openPDFExternal(url).catch(()=>notice('외부 링크를 열지 못했습니다.')):data.dest?followPDFDestination(data.dest,pdf):followPDFDestination([Math.max(0,Math.min(pdf.numPages-1,actionPage-1)),{name:'Fit'}],pdf);
+  const activate=()=>url?openPDFExternal(url).catch(()=>notice('외부 링크를 열지 못했습니다.')):data.dest?followPDFDestination(data.dest,pdf,Array.isArray(data.rect)?ownerPage:null):followPDFDestination([Math.max(0,Math.min(pdf.numPages-1,actionPage-1)),{name:'Fit'}],pdf);
   link.pdfGridActivate=activate;
+  if(data.dest)PDFGridCitations.attach(link,pdf,data,ownerPage);
   link.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch')e.stopPropagation()});
   link.addEventListener('click',e=>{e.stopPropagation();if(!url||desktopPDFBridge()?.openExternal){e.preventDefault();activate()}});
   return link;
@@ -402,7 +415,7 @@ function moveRows(direction){
   scrollGridTo(direction>0?Math.max(top+1,target):Math.min(top-1,target));
   return true;
 }
-$('prev').onclick=()=>moveRows(-1);$('next').onclick=()=>moveRows(1);$('page').onchange=()=>go(Number($('page').value));$('minus').onclick=()=>zoom(1/1.25);$('plus').onclick=()=>zoom(1.25);$('fit').onclick=fit;
+$('prev').onclick=()=>moveRows(-1);$('next').onclick=()=>moveRows(1);$('page').onchange=()=>{const from=readingTools?.before(),page=Number($('page').value);go(page);selected=Math.max(0,Math.min(items.length-1,Math.round(page)-1));readingTools?.commit(from,page)};$('minus').onclick=()=>zoom(1/1.25);$('plus').onclick=()=>zoom(1.25);$('fit').onclick=fit;
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen()}catch{notice('이 브라우저에서는 전체 화면을 사용할 수 없습니다.')}};
 stage.addEventListener('scroll',scheduleRender,{passive:true});
 stage.addEventListener('wheel',e=>{if(!doc||!(e.ctrlKey||e.metaKey))return;e.preventDefault();const r=stage.getBoundingClientRect();zoom(Math.exp(-Math.max(-150,Math.min(150,e.deltaY*(e.deltaMode===1?16:1)))*.002),e.clientX-r.left,e.clientY-r.top)},{passive:false});
@@ -566,6 +579,7 @@ let dragDepth=0;window.addEventListener('dragenter',e=>{e.preventDefault();dragD
  }
  openPickedFiles(files);
 });
+readingTools=PDFGridReadingTools.create({ready:()=>!!doc&&viewReady,capture:currentGridView,page:()=>{const it=items[selected];return it&&nearby(it,0)?selected+1:currentPage()},restore:restoreGridView,changed:()=>{try{window.parent.pdfGridSessionChanged?.()}catch{}}});
 new ResizeObserver(()=>{stage.style.top=$('toolbar').getBoundingClientRect().bottom+'px';if(doc)fit()}).observe($('toolbar'));window.addEventListener('resize',()=>{if(doc)fit()});controls();if(!desktopTab||(persistDocument&&new URLSearchParams(location.search).has('restore')))restoreFile();else $('status').textContent='PDF를 열어 주세요.';
 
 </script></body></html>

@@ -21,6 +21,6 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(!latest||installing)return;
   if(!confirm('작업 중인 결과를 먼저 저장해 주세요.\n설치 파일 다운로드와 확인이 끝나면 현재 앱을 닫고 설치 프로그램을 실행할까요?'))return;
   installing=true;close.disabled=install.disabled=true;dialog.classList.add('busy');status.textContent='최신 설치 파일을 다운로드하고 확인하는 중입니다…';
-  try{await api.installUpdate(latest.tag);status.textContent='설치 프로그램을 실행합니다…'}catch(error){status.textContent=error.message||'설치 파일을 받지 못했습니다. 다시 시도해 주세요.';installing=false;close.disabled=install.disabled=false;dialog.classList.remove('busy')}
+  try{await window.PDFGridSession?.flush();await api.installUpdate(latest.tag);status.textContent='설치 프로그램을 실행합니다…'}catch(error){status.textContent=error.message||'설치 파일을 받지 못했습니다. 다시 시도해 주세요.';installing=false;close.disabled=install.disabled=false;dialog.classList.remove('busy')}
  };
 });

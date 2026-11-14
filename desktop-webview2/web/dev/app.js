@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const lib = window.PDFLib, core = window.PDFGridTools;
 let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab = 'merge', busy = false;
 const MAX_BYTES = 100 * 1024 * 1024;
-const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.4.5' : '../viewer/?v=1.4.5';
+const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.5.0' : '../viewer/?v=1.5.0';
 function addGridSteppers(view) {
   const frame = view.defaultView;
   const columns = view.getElementById('cols');
@@ -124,6 +124,7 @@ function activatePdfTab(tab, focus = false) {
     item.panel.inert = !selected;
   }
   if (focus) tab.button.focus();
+  window.PDFGridSession.changed();
 }
 
 function createPdfTab() {
@@ -154,6 +155,7 @@ function createPdfTab() {
     tab.item.remove();
     tab.panel.remove();
     if (activePdfTab === tab) activatePdfTab(pdfTabs[index] || pdfTabs[index - 1] || createPdfTab(), true);
+    window.PDFGridSession.drop(tab);
   };
   function setName(name) {
     tab.button.textContent = tab.button.title = name;
@@ -224,6 +226,7 @@ $('tabFiles').onchange = event => {
   event.target.value = '';
 };
 window.openPdfTabs = async files => {
+  await window.PDFGridSession.ready;
   const valid = [...files].filter(file => file && (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)));
   if (!valid.length) return;
   setTab('viewer');
@@ -232,7 +235,7 @@ window.openPdfTabs = async files => {
     tab.hasFile = true;
     activatePdfTab(tab);
     await tab.ready;
-    if (pdfTabs.includes(tab) && await tab.frame.contentWindow.openFile(file)) tab.file = file;
+    if (pdfTabs.includes(tab) && await tab.frame.contentWindow.openFile(file)) { tab.file = file; await window.PDFGridSession.keep(tab,file); }
   }
 };
 
@@ -394,11 +397,20 @@ for (const [id, target] of [['mergeDrop', 'merge'], ['splitDrop', 'split']]) {
 }
 window.addEventListener('dragover', event => event.preventDefault()); window.addEventListener('drop', event => event.preventDefault());
 window.addEventListener('resize', () => { $('viewer').style.top = document.querySelector('nav').getBoundingClientRect().bottom + 'px'; });
+new ResizeObserver(() => { $('viewer').style.top = document.querySelector('nav').getBoundingClientRect().bottom + 'px'; }).observe(document.querySelector('nav'));
 if (!lib || !core || !window.JSZip) { message('PDF 도구를 불러오지 못했습니다. 페이지를 새로고침해 주세요.', true); document.querySelectorAll('button').forEach(el => el.disabled = true); } else refresh();
 
 window.addEventListener('hashchange', () => { if (!busy && ['merge', 'split', 'viewer', 'local'].includes(location.hash.slice(1))) setTab(location.hash.slice(1)); });
 setTab(['merge', 'split', 'viewer', 'local'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'viewer');
 
+window.PDFGridNavigation={move:direction=>activePdfTab?.frame.contentWindow.pdfGridHistoryMove?.(direction)};
+const editingTarget=target=>target?.closest?.('input,textarea,select,[contenteditable]');
+document.addEventListener('keydown',event=>{const hardware=event.key==='BrowserBack'||event.key==='BrowserForward';if(event.defaultPrevented||event.ctrlKey||event.altKey||event.metaKey||(!hardware&&editingTarget(event.target)))return;const direction=(event.key==='['||event.key==='BrowserBack')?-1:(event.key===']'||event.key==='BrowserForward')?1:0;if(direction){event.preventDefault();window.PDFGridNavigation.move(direction)}},true);
+for(const type of ['mousedown','mouseup','auxclick'])document.addEventListener(type,event=>{if(event.button!==3&&event.button!==4)return;event.preventDefault();if(type==='mousedown')window.PDFGridNavigation.move(event.button===3?-1:1)},true);
+window.PDFGridSession.start({tabs:()=>pdfTabs,active:()=>activePdfTab,activate:activatePdfTab,restore:async(file,state,id)=>{
+ const tab=activePdfTab?.hasFile?createPdfTab():activePdfTab||createPdfTab();tab.sessionID=id;tab.hasFile=true;activatePdfTab(tab);await tab.ready;
+ if(await tab.frame.contentWindow.openFile(file,state)){tab.file=file;return tab}tab.hasFile=false;return null;
+}});
 if (window.pdfGridDesktop) {
   let reading = false;
   let requested = false;
@@ -407,6 +419,7 @@ if (window.pdfGridDesktop) {
     if (reading) return;
     reading = true;
     try {
+      await window.PDFGridSession.ready;
       do {
         requested = false;
         let file;

@@ -219,6 +219,11 @@ func runWindow(a *app, profile, url string) error {
 	}
 	a.mu.Unlock()
 	defer func() { a.mu.Lock(); a.notify = nil; a.mu.Unlock() }()
+	closeState, err := installWindowPersistence(w, profile, a.token)
+	if err != nil {
+		return err
+	}
+	defer closeState()
 	if windowTestHook != nil {
 		windowTestHook(w)
 	}
