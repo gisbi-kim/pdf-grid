@@ -41,6 +41,8 @@
    citation.click();await until(()=>frame.document.querySelector('.sheet.selected .num')?.textContent==='24');
    frame.document.dispatchEvent(new frame.KeyboardEvent('keydown',{key:'[',bubbles:true}));await until(()=>frame.document.querySelector('.sheet.selected .num')?.textContent==='2');
    await nativeTestStage('navigation-forward');await until(()=>frame.document.querySelector('.sheet.selected .num')?.textContent==='24');
+   await nativeTestStage('mouse-back');await until(()=>frame.document.querySelector('.sheet.selected .num')?.textContent==='2');
+   await nativeTestStage('mouse-forward');await until(()=>frame.document.querySelector('.sheet.selected .num')?.textContent==='24');
    await nativeTestStage('navigation-back');await until(()=>frame.document.querySelector('.sheet.selected .num')?.textContent==='2');
    const originalTabCount=document.querySelectorAll('#pdfTabList [role=tab]').length;
    frame.go(10);await sleep(100);const previousScroll=stage.scrollTop;

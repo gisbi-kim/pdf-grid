@@ -20,6 +20,7 @@ import (
 	"syscall"
 	"testing"
 	"time"
+	"unsafe"
 )
 
 //go:embed tests/native-smoke.js
@@ -109,6 +110,21 @@ func TestNativeUI(t *testing.T) {
 		w.Bind("nativeTestStage", func(stage string) error {
 			if stage == "ready" {
 				t.Logf("Native viewer fully loaded: %s (CI host, not an Electron comparison)", time.Since(started))
+				return nil
+			}
+			if stage == "mouse-back" || stage == "mouse-forward" {
+				button := uintptr(1)
+				if stage == "mouse-forward" {
+					button = 2
+				}
+				w.Dispatch(func() {
+					point := windowPoint{200, 180}
+					user32.NewProc("SetForegroundWindow").Call(uintptr(w.Window()))
+					user32.NewProc("ClientToScreen").Call(uintptr(w.Window()), uintptr(unsafe.Pointer(&point)))
+					user32.NewProc("SetCursorPos").Call(uintptr(point.X), uintptr(point.Y))
+					user32.NewProc("mouse_event").Call(0x80, 0, 0, button, 0)
+					user32.NewProc("mouse_event").Call(0x100, 0, 0, button, 0)
+				})
 				return nil
 			}
 			if stage == "navigation-back" || stage == "navigation-forward" {
