@@ -9,8 +9,9 @@ ROOT = Path(__file__).resolve().parent.parent
 def generated_files():
     shell = (ROOT / 'dev/index.html').read_text(encoding='utf-8')
     yield ROOT / 'index.html', shell.replace('<head>', '<head><base href="dev/">', 1).encode('utf-8')
-    viewer = (ROOT / 'viewer/index.html').read_bytes()
-    yield ROOT / 'desktop-webview2/web/index.html', viewer
+    for source in sorted((ROOT / 'viewer').iterdir()):
+        if source.is_file():
+            yield ROOT / 'desktop-webview2/web' / source.name, source.read_bytes()
     for source in sorted((ROOT / 'dev').rglob('*')):
         if not source.is_file() or source.name == 'README.md':
             continue

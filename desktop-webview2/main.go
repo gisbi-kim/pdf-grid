@@ -25,7 +25,7 @@ import (
 //go:embed web
 var assets embed.FS
 
-const version = "1.4.6"
+const version = "1.5.0"
 const identity = "pdf-grid-webview2-v1"
 const address = "127.0.0.1:49383"
 
@@ -34,6 +34,7 @@ type app struct {
 	mu                   sync.Mutex
 	pending              []string
 	sources              map[string]string
+	sourceFile           string
 	notify               func()
 	externalOpener       func(string) error
 	updateSource         *updateClient
@@ -151,6 +152,7 @@ const bridgeJS = `(function(){
  getStartupPDF:async()=>pdf(await window.nativeNext(token)),
  refreshPDF:async id=>pdf(await window.nativeRefreshPDF(token,id)),
  pickPDFs:async()=>((await task("nativePickPDFs"))||[]).map(pdf),
+ closeReady:()=>window.nativeSessionCloseReady(token),
  onPDFOpenRequested:callback=>window.addEventListener('pdf-open-requested',callback)
  });
 })();`
@@ -217,7 +219,8 @@ func main() {
 		return
 	}
 	defer listener.Close()
-	a := &app{token: randomToken(), instanceToken: randomToken()}
+	a := &app{token: randomToken(), instanceToken: randomToken(), sourceFile: filepath.Join(profile, "pdf-sources.json")}
+	a.loadPDFSources()
 	a.enqueue(paths)
 	if e := os.WriteFile(filepath.Join(profile, "instance-token"), []byte(a.instanceToken), 0600); e != nil {
 		showError(e.Error())

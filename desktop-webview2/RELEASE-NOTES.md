@@ -1,5 +1,9 @@
-PDF Grid 1.4.6 for Windows 10/11 x64
+PDF Grid 1.5.0 for Windows 10/11 x64
 
+- Restore window position/size/maximization, PDF tabs/order/active tab and each tab's view/history after closing and restarting. Native PDFs reread their sources; missing originals use cached snapshots with a notice. Generated PDFs are cached too; passwords are not stored.
+- Add per-tab reading history: `[` / `]`, mouse back/forward and visible footer controls return to previous/next PDF link positions, with destination page labels.
+- Hover/focus embedded citation links for an in-place reference card extracted locally from the PDF. No paper text or titles are sent to external metadata services.
+- On the first upgrade from 1.4.x, reopen PDFs once because the prior version did not save multiple tabs.
 - Fixed opening PDFs resetting a maximized viewer to its normal/default size. Existing visible windows keep their size/position/maximization; minimized windows restore their saved placement. Native picker completion returns focus, and second-instance forwarding grants foreground permission where Windows allows it.
 - Added a visible ↻ 새로고침 button beside 격자 보기 in the ribbon. It rereads the active PDF with the same behavior as Ctrl+R/F5 and is disabled during refresh. The web edition reloads the browser page.
 - Ctrl+R / F5 rereads the active PDF after a rebuild, preserving tabs and view position. Native file picking and file-association opens retain a refreshable source; generated PDFs redraw from memory. Missing/invalid outputs keep the old document. Empty windows reload the app UI. App upgrades still use the update button.

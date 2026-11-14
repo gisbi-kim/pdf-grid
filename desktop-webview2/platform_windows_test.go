@@ -23,3 +23,19 @@ func TestNativeClipboard(t *testing.T) {
 		t.Fatalf("Clipboard: %v", e)
 	}
 }
+
+func TestWindowPlacementPersistenceABI(t *testing.T) {
+	if unsafe.Sizeof(windowPlacement{}) != 44 {
+		t.Fatal("WINDOWPLACEMENT ABI mismatch")
+	}
+	for _, maximize := range []bool{false, true} {
+		value := windowPlacement{ShowCmd: 2}
+		if maximize {
+			value.Flags = 2
+		}
+		restored := normalizedPlacement(value)
+		if (restored.ShowCmd == 3) != maximize || restored.ShowCmd == 2 {
+			t.Fatal("Minimized state did not normalize correctly")
+		}
+	}
+}

@@ -34,6 +34,14 @@
    frame.go(1);await until(()=>frame.document.querySelector('.sheet .pdfLinkLayer')?.children.length===3);frame.document.querySelectorAll('.sheet .pdfLink')[1].click();await until(()=>frame.document.querySelector('.sheet.selected .num')?.textContent==='4');
    frame.document.querySelector('#outlineToggle').click();frame.document.querySelector('#pdfOutline a').click();await until(()=>frame.document.querySelector('#pdfOutline').hidden&&frame.document.querySelector('.sheet.selected .num')?.textContent==='4');
    frame.go(1);await until(()=>frame.document.querySelector('.sheet .pdfLinkLayer')?.children.length===3);frame.document.querySelector('.sheet a[href="https://example.com/pdf-link"]').click();await sleep(100);
+   frame.go(1);await until(()=>frame.document.querySelectorAll('.sheet')[1]?.querySelector('.pdfLink'));
+   const citation=frame.document.querySelectorAll('.sheet')[1].querySelector('.pdfLink');citation.dispatchEvent(new frame.MouseEvent('mouseenter'));
+   await until(()=>frame.document.querySelector('#citationCard')?.textContent.includes('Reliable Robot Mapping'));
+   if(frame.document.querySelector('#citationCard').textContent.includes('Unrelated'))throw Error('Citation preview included another reference');
+   citation.click();await until(()=>frame.document.querySelector('.sheet.selected .num')?.textContent==='24');
+   frame.document.dispatchEvent(new frame.KeyboardEvent('keydown',{key:'[',bubbles:true}));await until(()=>frame.document.querySelector('.sheet.selected .num')?.textContent==='2');
+   await nativeTestStage('navigation-forward');await until(()=>frame.document.querySelector('.sheet.selected .num')?.textContent==='24');
+   await nativeTestStage('navigation-back');await until(()=>frame.document.querySelector('.sheet.selected .num')?.textContent==='2');
    const originalTabCount=document.querySelectorAll('#pdfTabList [role=tab]').length;
    frame.go(10);await sleep(100);const previousScroll=stage.scrollTop;
    for(const [key,count] of [['reload-f5',25],['reload-ctrl-r',26],['reload-button',27]]){

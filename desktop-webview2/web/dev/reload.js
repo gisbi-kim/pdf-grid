@@ -29,6 +29,7 @@ window.PDFGridReload = (() => {
       if (!file) throw new Error('원본 PDF를 다시 열어 주세요.');
       if (await viewer.openFile(file, state)) {
         tab.file = file;
+        await window.PDFGridSession.keep(tab,file);
         viewer.notice(disk ? '최신 PDF를 다시 불러왔습니다.' : 'PDF 화면을 새로고침했습니다.');
       }
     } catch (error) {

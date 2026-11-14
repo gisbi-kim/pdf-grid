@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,6 +33,11 @@ func (a *app) readPDFPath(path string) (any, error) {
 	if id == "" {
 		id = randomToken()
 		a.sources[id] = path
+		if a.sourceFile != "" {
+			if err := writeProfileJSON(a.sourceFile, a.sources); err != nil {
+				log.Printf("PDF source state: %v", err)
+			}
+		}
 	}
 	return map[string]any{"name": filepath.Base(path), "bytes": data, "sourceID": id}, nil
 }

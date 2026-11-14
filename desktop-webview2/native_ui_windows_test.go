@@ -51,7 +51,7 @@ func TestNativeUI(t *testing.T) {
 	})
 	os.MkdirAll(profile, 0700)
 	a := &app{token: randomToken(), instanceToken: randomToken()}
-	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.4.6.exe")
+	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.5.0.exe")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,6 +109,16 @@ func TestNativeUI(t *testing.T) {
 		w.Bind("nativeTestStage", func(stage string) error {
 			if stage == "ready" {
 				t.Logf("Native viewer fully loaded: %s (CI host, not an Electron comparison)", time.Since(started))
+				return nil
+			}
+			if stage == "navigation-back" || stage == "navigation-forward" {
+				command := uintptr(1)
+				if stage == "navigation-forward" {
+					command = 2
+				}
+				w.Dispatch(func() {
+					user32.NewProc("PostMessageW").Call(uintptr(w.Window()), 0x319, uintptr(w.Window()), command<<16)
+				})
 				return nil
 			}
 			if stage == "assert-window" {
