@@ -17,7 +17,7 @@ public class SaveDialog {
  [DllImport("user32.dll")] public static extern IntPtr GetParent(IntPtr h);
  [DllImport("user32.dll")] public static extern IntPtr GetDlgItem(IntPtr h,int id);
  [DllImport("user32.dll",CharSet=CharSet.Unicode)] public static extern IntPtr SendMessage(IntPtr h,int m,IntPtr w,StringBuilder l);
- [DllImport("user32.dll",CharSet=CharSet.Unicode)] public static extern bool SetWindowText(IntPtr h,string s);
+ [DllImport("user32.dll",EntryPoint="SendMessageW")] public static extern IntPtr Msg(IntPtr h,int m,IntPtr w,IntPtr l);
  [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h,int m,IntPtr w,IntPtr l);
  public static string Text(IntPtr h){var s=new StringBuilder(4096);GetWindowText(h,s,4096);return s.ToString();}
  public static string ControlText(IntPtr h){var s=new StringBuilder(4096);SendMessage(h,0xD,new IntPtr(s.Capacity),s);return s.ToString();}
@@ -34,10 +34,20 @@ for($n=0;$n -lt 300;$n++){
   $edit=[SaveDialog]::Edit($dialog)
   if($OpenFile -and $edit -ne [IntPtr]::Zero){
    if(!(Test-Path -LiteralPath $Destination)){throw 'Open fixture missing'}
-   [SaveDialog]::SetWindowText($edit,$Destination)|Out-Null
+   # Pasting triggers the shell dialog's filename change notification; WM_SETTEXT
+   # changes the visible edit text without reliably updating its internal choice.
+   Add-Type -AssemblyName System.Windows.Forms
+   [System.Windows.Forms.Clipboard]::SetText($Destination)
+   [SaveDialog]::Msg($edit,0xB1,[IntPtr]::Zero,[IntPtr]::new(-1))|Out-Null
+   [SaveDialog]::Msg($edit,0x302,[IntPtr]::Zero,[IntPtr]::Zero)|Out-Null
    [SaveDialog]::PostMessage([SaveDialog]::GetDlgItem($dialog,1),0xF5,[IntPtr]::Zero,[IntPtr]::Zero)|Out-Null
-   Write-Host "Accepted native PDF open: $Destination"
-   exit 0
+   for($accepted=0;$accepted -lt 50;$accepted++){
+    if(![SaveDialog]::IsWindowVisible($dialog)){Write-Host "Accepted native PDF open: $Destination";exit 0}
+    Start-Sleep -Milliseconds 100
+   }
+   Write-Host ([SaveDialog]::Windows($AppPid))
+   [SaveDialog]::PostMessage([SaveDialog]::GetDlgItem($dialog,2),0xF5,[IntPtr]::Zero,[IntPtr]::Zero)|Out-Null
+   throw 'PDF open dialog did not accept the fixture path' 
   }
   if($edit -ne [IntPtr]::Zero -and ([SaveDialog]::ControlText($edit) -eq [IO.Path]::GetFileName($Destination) -or [SaveDialog]::ControlText($edit) -eq [IO.Path]::GetFileNameWithoutExtension($Destination))){
    # Accept the real dialog's default filename and Downloads folder. The native
