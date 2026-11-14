@@ -191,7 +191,7 @@ async function layout(){
     $('status').textContent=`전체 ${doc.numPages}쪽 · ${cols}열 × ${Math.ceil(doc.numPages/cols)}행 · 스크롤 이동 · Ctrl/⌘ + 휠 확대`;
   }catch(e){if(g===generation)notice('페이지를 불러오지 못했습니다: '+e.message)}
 }
-window.gridReloadState=()=>({key:activeFileKey,view:{cols,zoom:scale/fitScale,left:stage.scrollLeft/scale,top:stage.scrollTop/scale}});
+window.gridReloadState=()=>({key:activeFileKey,view:{cols,scale,zoom:scale/fitScale,left:stage.scrollLeft/scale,top:stage.scrollTop/scale}});
 async function openFile(file,restored=null){
   if(!file)return;clearTouch();saveView();viewReady=false;const id=++loadGeneration;$('status').textContent='PDF를 여는 중…';let task;
   try{
@@ -205,7 +205,7 @@ async function openFile(file,restored=null){
     if(restored?.view){cols=Math.max(1,Math.min(10,Math.round(Number(restored.view.cols)||2)));$('cols').value=cols}
     $('filename').textContent=file.name;$('empty').style.display='none';stage.classList.add('ready');await layout();if(id!==loadGeneration)return;
     if(restored?.view){
-      const view=restored.view,zoom=Number(view.zoom);scale=fitScale*Math.max(minimumGridScale()/fitScale,Math.min(16,Number.isFinite(zoom)?zoom:1));position();
+      const view=restored.view,zoom=Number(view.zoom),absolute=Number(view.scale);scale=Number.isFinite(absolute)&&absolute>0?Math.max(minimumGridScale(),Math.min(fitScale*16,absolute)):fitScale*Math.max(minimumGridScale()/fitScale,Math.min(16,Number.isFinite(zoom)?zoom:1));position();
       stage.scrollLeft=Math.max(0,Number(view.left)||0)*scale;stage.scrollTop=Math.max(0,Number(view.top)||0)*scale;controls();scheduleRender();
     }
     clearSearch();searchCache=new Map();if($('searchInput').value.trim())runSearch();viewReady=true;saveView();if(persistDocument&&!restored)saveFile(file,activeFileKey,id);stage.focus();return true;
