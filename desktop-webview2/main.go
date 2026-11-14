@@ -24,7 +24,7 @@ import (
 //go:embed web
 var assets embed.FS
 
-const version = "1.4.3"
+const version = "1.4.4"
 const identity = "pdf-grid-webview2-v1"
 const address = "127.0.0.1:49383"
 
@@ -32,6 +32,7 @@ type app struct {
 	token, instanceToken string
 	mu                   sync.Mutex
 	pending              []string
+	sources              map[string]string
 	notify               func()
 	externalOpener       func(string) error
 	updateSource         *updateClient
@@ -63,17 +64,14 @@ func (a *app) nextPDF(token string) (any, error) {
 		return nil, fmt.Errorf("Unauthorized")
 	}
 	a.mu.Lock()
-	defer a.mu.Unlock()
 	if len(a.pending) == 0 {
+		a.mu.Unlock()
 		return nil, nil
 	}
 	name := a.pending[0]
 	a.pending = a.pending[1:]
-	b, e := os.ReadFile(name)
-	if e != nil {
-		return nil, fmt.Errorf("PDF 파일을 읽을 수 없습니다: %w", e)
-	}
-	return map[string]any{"name": filepath.Base(name), "bytes": b}, nil
+	a.mu.Unlock()
+	return a.readPDFPath(name)
 }
 func (a *app) handler() http.Handler {
 	web, _ := fs.Sub(assets, "web")
@@ -137,6 +135,7 @@ const bridgeJS = `(function(){
  const token='%s';
  const encode=bytes=>{let s='';for(let i=0;i<bytes.length;i+=32768)s+=String.fromCharCode(...bytes.subarray(i,i+32768));return btoa(s)};
  const decode=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+ const pdf=f=>f?{name:f.name,bytes:decode(f.bytes),sourceID:f.sourceID}:null;
  const jobs=new Map();
  window.__pdfGridTaskResult=(id,result,error)=>{const p=jobs.get(id);if(!p)return;jobs.delete(id);if(error)p.reject(new Error(error));else p.resolve(result)};
  const task=(method,...args)=>new Promise((resolve,reject)=>{const id=crypto.randomUUID();jobs.set(id,{resolve,reject});window[method](token,id,...args).catch(error=>{jobs.delete(id);reject(error)})});
@@ -148,7 +147,9 @@ const bridgeJS = `(function(){
  openExternal:url=>window.nativeOpenExternal(token,url),
  checkForUpdates:()=>task("nativeCheckUpdates"),
  installUpdate:tag=>task("nativeInstallUpdate",tag),
- getStartupPDF:async()=>{const f=await window.nativeNext(token);return f?{name:f.name,bytes:decode(f.bytes)}:null},
+ getStartupPDF:async()=>pdf(await window.nativeNext(token)),
+ refreshPDF:async id=>pdf(await window.nativeRefreshPDF(token,id)),
+ pickPDFs:async()=>((await task("nativePickPDFs"))||[]).map(pdf),
  onPDFOpenRequested:callback=>window.addEventListener('pdf-open-requested',callback)
  });
 })();`

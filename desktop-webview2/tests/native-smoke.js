@@ -34,6 +34,17 @@
    frame.go(1);await until(()=>frame.document.querySelector('.sheet .pdfLinkLayer')?.children.length===3);frame.document.querySelectorAll('.sheet .pdfLink')[1].click();await until(()=>frame.document.querySelector('.sheet.selected .num')?.textContent==='4');
    frame.document.querySelector('#outlineToggle').click();frame.document.querySelector('#pdfOutline a').click();await until(()=>frame.document.querySelector('#pdfOutline').hidden&&frame.document.querySelector('.sheet.selected .num')?.textContent==='4');
    frame.go(1);await until(()=>frame.document.querySelector('.sheet .pdfLinkLayer')?.children.length===3);frame.document.querySelector('.sheet a[href="https://example.com/pdf-link"]').click();await sleep(100);
+   const originalTabCount=document.querySelectorAll('#pdfTabList [role=tab]').length;
+   frame.go(10);await sleep(100);const previousScroll=stage.scrollTop;
+   for(const [key,count] of [['reload-f5',25],['reload-ctrl-r',26]]){
+    const rebuilt=await createPDFGridFixture(PDFLib,count);
+    frame.document.querySelector('#toast').textContent='';
+    if(key==='reload-f5')stage.focus();else document.querySelector('#devStatus').focus();
+    await nativeTestStage(key+':'+btoa(String.fromCharCode(...rebuilt)));
+    await until(()=>frame.document.querySelectorAll('.sheet').length===count && frame.document.querySelector('#toast').textContent==='최신 PDF를 다시 불러왔습니다.');
+    if(document.querySelectorAll('#pdfTabList [role=tab]').length!==originalTabCount)throw new Error('Reload lost open tabs');
+    if(Math.abs(stage.scrollTop-previousScroll)>4)throw new Error('Reload lost reading position: '+key+' '+previousScroll+' -> '+stage.scrollTop);
+   }
    document.querySelector('#checkForUpdates').click();await until(()=>!document.querySelector('#installUpdate').hidden);
    if(!document.querySelector('#updateStatus').textContent.includes('9.9.9'))throw new Error('Update UI did not show latest version');
    document.querySelector('#updateClose').click();const latest=await pdfGridDesktop.checkForUpdates();

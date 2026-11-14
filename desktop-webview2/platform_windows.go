@@ -180,6 +180,32 @@ func runWindow(a *app, profile, url string) error {
 	}); err != nil {
 		return err
 	}
+	if err := w.Bind("nativeRefreshPDF", a.refreshPDF); err != nil {
+		return err
+	}
+	if err := w.Bind("nativePickPDFs", func(token, id string) error {
+		if err := validTask(token, id); err != nil {
+			return err
+		}
+		w.Dispatch(func() {
+			paths, err := chooseOpenPDFs(hwnd)
+			var files []any
+			if err == nil {
+				for _, path := range paths {
+					file, e := a.readPDFPath(path)
+					if e != nil {
+						err = e
+						break
+					}
+					files = append(files, file)
+				}
+			}
+			completeTask(id, files, err)
+		})
+		return nil
+	}); err != nil {
+		return err
+	}
 	if err := w.Bind("nativeNext", a.nextPDF); err != nil {
 		return err
 	}
@@ -354,4 +380,44 @@ func launchUpdateInstaller(target string) error {
 		return err
 	}
 	return cmd.Process.Release()
+}
+
+// Native picking preserves the original path so F5 can reopen replaced build outputs.
+func chooseOpenPDFs(hwnd uintptr) ([]string, error) {
+	buffer := make([]uint16, 65536)
+	filter := syscall.StringToUTF16("PDF")
+	filter = append(filter, syscall.StringToUTF16("*.pdf")...)
+	filter = append(filter, 0)
+	title, _ := syscall.UTF16PtrFromString("PDF Grid — PDF 열기")
+	dialog := openFileName{Owner: hwnd, Filter: &filter[0], FilterIndex: 1, File: &buffer[0], MaxFile: uint32(len(buffer)), Title: title,
+		Flags: 0x00080000 | 0x00001000 | 0x00000800 | 0x00000200 | 0x00000008}
+	dialog.Size = uint32(unsafe.Sizeof(dialog))
+	ok, _, _ := syscall.NewLazyDLL("comdlg32.dll").NewProc("GetOpenFileNameW").Call(uintptr(unsafe.Pointer(&dialog)))
+	if ok == 0 {
+		code, _, _ := syscall.NewLazyDLL("comdlg32.dll").NewProc("CommDlgExtendedError").Call()
+		if code != 0 {
+			return nil, fmt.Errorf("열기 대화상자 오류: %x", code)
+		}
+		return nil, nil
+	}
+	var parts []string
+	start := 0
+	for i, ch := range buffer {
+		if ch != 0 {
+			continue
+		}
+		if i == start {
+			break
+		}
+		parts = append(parts, syscall.UTF16ToString(buffer[start:i]))
+		start = i + 1
+	}
+	if len(parts) < 2 {
+		return parts, nil
+	}
+	paths := make([]string, 0, len(parts)-1)
+	for _, name := range parts[1:] {
+		paths = append(paths, filepath.Join(parts[0], name))
+	}
+	return paths, nil
 }

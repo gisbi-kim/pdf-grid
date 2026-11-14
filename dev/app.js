@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const lib = window.PDFLib, core = window.PDFGridTools;
 let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab = 'merge', busy = false;
 const MAX_BYTES = 100 * 1024 * 1024;
-const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.4.3' : '../viewer/?v=1.4.3';
+const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.4.4' : '../viewer/?v=1.4.4';
 function addGridSteppers(view) {
   const frame = view.defaultView;
   const columns = view.getElementById('cols');
@@ -59,6 +59,10 @@ function compactGridViewer(frame) {
   const open = view.getElementById('open');
   const file = view.getElementById('file');
   if (!toolbar || !filename || !open || !file) return;
+  if (window.pdfGridDesktop?.pickPDFs) {
+    open.onclick = view.getElementById('openEmpty').onclick = () => void window.pickPdfTabs();
+  }
+  window.PDFGridReload.bind(view);
   const group = view.createElement('div');
   group.className = 'group documentGroup';
   group.append(filename, open, file);
@@ -108,6 +112,7 @@ function compactGridViewer(frame) {
 const pdfTabs = [];
 let activePdfTab;
 let nextPdfTab = 0;
+window.PDFGridReload.setup(() => activePdfTab, () => busy);
 
 function activatePdfTab(tab, focus = false) {
   activePdfTab = tab;
@@ -200,7 +205,20 @@ $('pdfTabList').addEventListener('keydown', event => {
   event.preventDefault();
   activatePdfTab(pdfTabs[targets[event.key]], true);
 });
-$('addPDFTab').onclick = () => $('tabFiles').click();
+window.pickPdfTabs = async () => {
+  if (!window.pdfGridDesktop?.pickPDFs) { $('tabFiles').click(); return; }
+  try {
+    const files = await window.pdfGridDesktop.pickPDFs();
+    await window.openPdfTabs(files.map(source => {
+      const file = new File([source.bytes], source.name, {type:'application/pdf'});
+      file.pdfGridSourceID = source.sourceID;
+      return file;
+    }));
+  } catch (error) {
+    activePdfTab?.frame.contentWindow.notice(error.message || 'PDF를 열지 못했습니다.');
+  }
+};
+$('addPDFTab').onclick = () => void window.pickPdfTabs();
 $('tabFiles').onchange = event => {
   void window.openPdfTabs([...event.target.files]);
   event.target.value = '';
@@ -214,7 +232,7 @@ window.openPdfTabs = async files => {
     tab.hasFile = true;
     activatePdfTab(tab);
     await tab.ready;
-    if (pdfTabs.includes(tab)) await tab.frame.contentWindow.openFile(file);
+    if (pdfTabs.includes(tab) && await tab.frame.contentWindow.openFile(file)) tab.file = file;
   }
 };
 
@@ -322,7 +340,9 @@ function showResults(files) {
   message('완료했습니다. 파일을 받거나 격자 보기에서 결과를 확인하세요.'); $('results').scrollIntoView({behavior: 'smooth', block: 'nearest'});
 }
 async function preview(file) {
-  await window.openPdfTabs([new File([file.bytes], file.name, {type: 'application/pdf'})]);
+  const source = new File([file.bytes], file.name, {type: 'application/pdf'});
+  source.pdfGridSourceID = file.sourceID;
+  await window.openPdfTabs([source]);
 }
 async function sample(name, count, color) {
   const doc = await lib.PDFDocument.create();
