@@ -3,7 +3,8 @@ const assert=require('node:assert/strict');
 const vm=require('node:vm');
 const fs=require('node:fs');
 const path=require('node:path');
-const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
+const viewer=path.join(__dirname,'../../viewer/index.html');
+const html=fs.readFileSync(fs.existsSync(viewer)?viewer:path.join(__dirname,'../../index.html'),'utf8');
 const zoom=html.slice(html.indexOf('function zoom('),html.indexOf('function nearby('));
 const gestures=html.slice(html.indexOf('// Touch gestures:'),html.indexOf('// End touch gestures.'));
 function fixture(){

@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const lib = window.PDFLib, core = window.PDFGridTools;
 let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab = 'merge', busy = false;
 const MAX_BYTES = 100 * 1024 * 1024;
-const GRID_VIEWER_URL = '../?v=touch-zoom-1';
+const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.4.3' : '../viewer/?v=1.4.3';
 function addGridSteppers(view) {
   const frame = view.defaultView;
   const columns = view.getElementById('cols');
@@ -172,7 +172,7 @@ function createPdfTab() {
       resolve();
     }, {once: true});
   });
-  tab.frame.src = GRID_VIEWER_URL + '&desktop=tab';
+  tab.frame.src = GRID_VIEWER_URL + '&desktop=tab' + (!window.pdfGridDesktop && id === 1 ? '&restore=1' : '');
   tab.panel.append(tab.frame);
   tab.item.append(tab.button, tab.close);
   pdfTabs.push(tab);
@@ -311,6 +311,7 @@ function showResults(files) {
     const title = document.createElement('span'); title.className = 'resultName'; title.textContent = `${file.name} · ${humanSize(file.bytes.length)}`;
     const link = document.createElement('a'); link.className = 'download'; link.textContent = 'PDF 받기 ↓'; link.download = file.name; link.href = URL.createObjectURL(new Blob([file.bytes], {type: 'application/pdf'})); outputURLs.push(link.href);
     link.onclick = event => {
+      if (!window.pdfGridDesktop?.saveResult) return;
       event.preventDefault();
       if (!busy) run(async () => {
         if (await window.pdfGridDesktop.saveResult(file.name, file.bytes)) message('PDF 파일을 저장했습니다.');
@@ -353,7 +354,15 @@ $('splitRun').onclick = () => run(async () => {
 $('downloadAll').onclick = () => run(async () => {
   message('ZIP 파일을 준비하는 중…'); const zip = new JSZip(); outputs.forEach(file => zip.file(file.name, file.bytes));
   const bytes = await zip.generateAsync({type: 'uint8array'});
-  if (await window.pdfGridDesktop.saveResult('pdf-grid-split.zip', bytes)) message('ZIP 파일을 저장했습니다.');
+  if (window.pdfGridDesktop?.saveResult) {
+    if (await window.pdfGridDesktop.saveResult('pdf-grid-split.zip', bytes)) message('ZIP 파일을 저장했습니다.');
+  } else {
+    const url = URL.createObjectURL(new Blob([bytes], {type: 'application/zip'}));
+    const link = document.createElement('a'); link.href = url; link.download = 'pdf-grid-split.zip';
+    document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    message('ZIP 파일을 다운로드했습니다.');
+  }
 });
 $('mergeDemo').onclick = () => run(async () => { const a = await sample('Sample-A', 3, [.25, .4, .24]), b = await sample('Sample-B', 2, [.2, .32, .48]); await addMerge([a, b]); });
 $('splitDemo').onclick = () => run(async () => chooseSplit(await sample('Sample-5-pages', 5, [.25, .4, .24])));

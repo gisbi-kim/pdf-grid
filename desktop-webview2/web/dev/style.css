@@ -31,3 +31,17 @@
 .pdfTabPanel { position: absolute; inset: 0; }
 .pdfTabPanel[aria-hidden=true] { visibility: hidden; pointer-events: none; }
 .pdfTabPanel iframe { display: block; }
+
+/* Shared release/dev and repository controls. */
+.appLinks { display:flex; align-items:center; gap:5px; margin-left:auto; flex:0 0 auto; }
+.appLinks a { text-decoration:none; font-size:12px; padding:5px 9px; border:1px solid #404952; border-radius:8px; white-space:nowrap; }
+.appLinks a:hover { background:#3b454f; }
+.appLinks #devStatus { color:#c7f481; border-color:#607647; }
+#versionStatus { position:fixed; z-index:100; width:max-content; max-width:calc(100vw - 16px); padding:10px 14px; border:1px solid #607647; border-radius:8px; background:#252f28; color:#e5e9ed; font-size:13px; box-shadow:0 6px 24px #0008; }
+#versionStatus[hidden], .appLinks [hidden] { display:none; }
+@media(max-width:680px) {
+  .appRibbon { flex-wrap:wrap; overflow:visible; }
+  .appRibbon .documentTabs { order:2; flex-basis:100%; margin:0; padding:4px 0 0; border:0; }
+  .appRibbon .brand { margin-right:2px; }
+  .appRibbon button, .appLinks a { padding:5px; font-size:11px; }
+}

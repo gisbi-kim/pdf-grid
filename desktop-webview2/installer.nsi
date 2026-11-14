@@ -4,8 +4,8 @@
 !include "FileFunc.nsh"
 !include "nsDialogs.nsh"
 !include "WinMessages.nsh"
-Name "PDF Grid 1.4.2"
-OutFile "PDF-Grid-Desktop-Setup-1.4.2.exe"
+Name "PDF Grid 1.4.3"
+OutFile "PDF-Grid-Desktop-Setup-1.4.3.exe"
 InstallDir "$LOCALAPPDATA\Programs\pdf-grid-desktop"
 RequestExecutionLevel user
 SetCompressor /SOLID lzma
@@ -14,12 +14,12 @@ BrandingText "PDF Grid"
 AutoCloseWindow true
 Icon "app.ico"
 UninstallIcon "app.ico"
-VIProductVersion "1.4.2.0"
+VIProductVersion "1.4.3.0"
 VIAddVersionKey "LegalCopyright" "PDF Grid contributors"
 VIAddVersionKey "ProductName" "PDF Grid"
 VIAddVersionKey "FileDescription" "PDF Grid lightweight setup"
-VIAddVersionKey "FileVersion" "1.4.2"
-VIAddVersionKey "ProductVersion" "1.4.2"
+VIAddVersionKey "FileVersion" "1.4.3"
+VIAddVersionKey "ProductVersion" "1.4.3"
 !define KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\88d3b172-4c13-5732-a92d-3c1735225b00"
 !define LOCATIONKEY "Software\88d3b172-4c13-5732-a92d-3c1735225b00"
 Var OldVersion
@@ -86,10 +86,10 @@ Function .onInit
   ${If} $OldVersion == ""
    StrCpy $OldVersion "버전 정보 없음"
   ${EndIf}
-  ${If} $OldVersion == "1.4.2"
-   MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "PDF Grid $OldVersion 버전이 이미 설치되어 있습니다.$\r$\n$\r$\n기존 프로그램을 제거하고 1.4.2 버전을 다시 설치할까요?$\r$\nPDF 원본과 기존 사용자 데이터 폴더는 삭제하지 않습니다.$\r$\n작업 중인 결과를 저장하고 PDF Grid 창을 닫은 뒤 진행해 주세요." IDYES confirmed
+  ${If} $OldVersion == "1.4.3"
+   MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "PDF Grid $OldVersion 버전이 이미 설치되어 있습니다.$\r$\n$\r$\n기존 프로그램을 제거하고 1.4.3 버전을 다시 설치할까요?$\r$\nPDF 원본과 기존 사용자 데이터 폴더는 삭제하지 않습니다.$\r$\n작업 중인 결과를 저장하고 PDF Grid 창을 닫은 뒤 진행해 주세요." IDYES confirmed
   ${Else}
-   MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "PDF Grid $OldVersion 버전이 설치되어 있습니다.$\r$\n$\r$\n기존 프로그램을 제거하고 경량 버전 1.4.2으로 교체할까요?$\r$\nPDF 원본과 기존 사용자 데이터 폴더는 삭제하지 않습니다.$\r$\n작업 중인 결과를 저장하고 PDF Grid 창을 닫은 뒤 진행해 주세요." IDYES confirmed
+   MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "PDF Grid $OldVersion 버전이 설치되어 있습니다.$\r$\n$\r$\n기존 프로그램을 제거하고 경량 버전 1.4.3으로 교체할까요?$\r$\nPDF 원본과 기존 사용자 데이터 폴더는 삭제하지 않습니다.$\r$\n작업 중인 결과를 저장하고 PDF Grid 창을 닫은 뒤 진행해 주세요." IDYES confirmed
   ${EndIf}
   Abort
  confirmed:
@@ -257,7 +257,7 @@ Section "Install"
  WriteUninstaller "$INSTDIR\Uninstall.exe"
  WriteRegStr HKCU "${LOCATIONKEY}" "InstallLocation" "$INSTDIR"
  WriteRegStr HKCU "${KEY}" "DisplayName" "PDF Grid"
- WriteRegStr HKCU "${KEY}" "DisplayVersion" "1.4.2"
+ WriteRegStr HKCU "${KEY}" "DisplayVersion" "1.4.3"
  WriteRegStr HKCU "${KEY}" "Publisher" "PDF Grid contributors"
  WriteRegStr HKCU "${KEY}" "InstallLocation" "$INSTDIR"
  WriteRegStr HKCU "${KEY}" "DisplayIcon" '$\"$INSTDIR\PDF-Grid.exe$\",0'
@@ -279,7 +279,7 @@ Section "Install"
  WriteRegStr HKCU "Software\RegisteredApplications" "PDF Grid" "Software\PDFGridDesktop\Capabilities"
  System::Call 'shell32::SHChangeNotify(i 0x08000000,i0,p0,p0)'
  IfSilent done
- MessageBox MB_YESNO|MB_ICONINFORMATION "PDF Grid 1.4.2 설치가 완료되었습니다.$\r$\n지금 실행할까요?" IDNO done
+ MessageBox MB_YESNO|MB_ICONINFORMATION "PDF Grid 1.4.3 설치가 완료되었습니다.$\r$\n지금 실행할까요?" IDNO done
  Exec '"$INSTDIR\PDF-Grid.exe"'
  Goto done
  installFailed:

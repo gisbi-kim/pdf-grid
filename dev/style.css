@@ -3,3 +3,45 @@
 .desktopDownload{display:flex;align-items:center;justify-content:space-between;gap:28px;padding:24px;border:1px solid #566b42;background:#202a20;border-radius:14px;margin-bottom:32px}.desktopDownload h1{font-size:22px;margin:12px 0 10px;letter-spacing:-.5px}.desktopDownload p{font-size:13px;color:#b6c1b3;line-height:1.8;margin:0 0 10px}.desktopDownload small{font-size:11px;color:#99a692}.desktopActions{display:flex;flex-direction:column;align-items:center;gap:12px;flex-shrink:0}.desktopButton{display:block;text-decoration:none;background:#c7f481;color:#172516;border-radius:8px;padding:14px 20px;font-weight:750;font-size:14px}.desktopActions span{font-size:10px;color:#b6c1b3}.portableLink{font-size:11px;color:#a8b79d}@media(max-width:680px){.desktopDownload{display:block;padding:20px}.desktopActions{margin-top:20px;align-items:stretch;text-align:center}.desktopDownload h1{font-size:20px}#localRuntimeBar{left:8px;right:8px!important;bottom:8px!important;font-size:10px!important;justify-content:space-between}}
 
 .guideSteps{border:1px solid #3b424a;border-radius:12px;padding:24px;margin-bottom:24px;background:#20252b}.guideSteps h2,.guideDetails h2{font-size:17px;margin:0 0 16px}.guideSteps ol{padding-left:24px;margin:0;display:grid;gap:20px}.guideSteps li{padding-left:6px}.guideSteps li::marker{color:#c7f481;font-weight:700}.guideSteps strong{font-size:14px}.guideSteps p,.guideDetails p{font-size:13px;line-height:1.85;color:#aeb9c3;margin:6px 0 0}.guideDetails{display:grid;grid-template-columns:1fr 1fr;gap:24px}.guideDetails article{padding:4px 0 16px}.guideDetails h2{margin-bottom:10px}.guideDetails code{color:#c7f481;background:#292f37;padding:2px 5px;border-radius:4px}.localGuide{padding-bottom:24px}@media(max-width:850px){nav span{display:none}}@media(max-width:680px){nav{overflow-x:auto}nav button{flex:0 0 auto;white-space:nowrap;padding:10px 9px;font-size:12px}.guideDetails{grid-template-columns:1fr;gap:16px}.guideSteps{padding:20px}.desktopDownload h1{font-size:24px}}
+
+.appRibbon {
+  min-height: 38px;
+  padding: 4px 10px;
+  gap: 5px;
+  flex-wrap: nowrap;
+  overflow: clip;
+}
+.appRibbon .brand { margin-right: 8px; font-size: 16px; }
+.appRibbon .brand span { display: inline; color: #c7f481; font-size: inherit; }
+.appRibbon button { flex: 0 0 auto; padding: 5px 9px; font-size: 12px; white-space: nowrap; }
+#viewer { top: 38px; }
+
+#viewer { display: flex; flex-direction: column; }
+.documentTabs { display: flex; flex: 1 1 0; gap: 4px; align-items: center; min-width: 0; margin-left: 5px; padding-left: 6px; border-left: 1px solid #343a42; }
+#pdfTabList { display: flex; flex: 0 1 auto; width: calc(var(--pdf-tab-count, 1) * 193px - 3px); gap: 3px; min-width: 0; overflow: clip; }
+.pdfTab { display: flex; align-items: center; flex: 0 1 190px; min-width: 0; container-type: inline-size; border: 1px solid #3b424a; border-radius: 5px; }
+.pdfTab:has([aria-selected=true]) { background: #c7f48117; border-color: #71874e; }
+.documentTabs button { border: 0; background: transparent; border-radius: 4px; padding: 3px 7px; font-size: 12px; white-space: nowrap; }
+.documentTabs button:hover { background: #3b454f; }
+.pdfTab [role=tab] { flex: 1 1 0; min-width: 0; padding-inline: 4px; overflow: hidden; text-overflow: ellipsis; }
+@container (max-width: 50px) { .pdfTab button:not([role=tab]) { display: none; } }
+.pdfTab [aria-selected=true] { color: #c7f481; }
+#addPDFTab { font-size: 17px; line-height: 18px; }
+#pdfTabPanels { position: relative; flex: 1; min-height: 0; }
+.pdfTabPanel { position: absolute; inset: 0; }
+.pdfTabPanel[aria-hidden=true] { visibility: hidden; pointer-events: none; }
+.pdfTabPanel iframe { display: block; }
+
+/* Shared release/dev and repository controls. */
+.appLinks { display:flex; align-items:center; gap:5px; margin-left:auto; flex:0 0 auto; }
+.appLinks a { text-decoration:none; font-size:12px; padding:5px 9px; border:1px solid #404952; border-radius:8px; white-space:nowrap; }
+.appLinks a:hover { background:#3b454f; }
+.appLinks #devStatus { color:#c7f481; border-color:#607647; }
+#versionStatus { position:fixed; z-index:100; width:max-content; max-width:calc(100vw - 16px); padding:10px 14px; border:1px solid #607647; border-radius:8px; background:#252f28; color:#e5e9ed; font-size:13px; box-shadow:0 6px 24px #0008; }
+#versionStatus[hidden], .appLinks [hidden] { display:none; }
+@media(max-width:680px) {
+  .appRibbon { flex-wrap:wrap; overflow:visible; }
+  .appRibbon .documentTabs { order:2; flex-basis:100%; margin:0; padding:4px 0 0; border:0; }
+  .appRibbon .brand { margin-right:2px; }
+  .appRibbon button, .appLinks a { padding:5px; font-size:11px; }
+}
