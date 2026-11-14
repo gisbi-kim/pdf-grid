@@ -409,7 +409,7 @@ document.addEventListener('keydown',event=>{const hardware=event.key==='BrowserB
 for(const type of ['mousedown','mouseup','auxclick'])document.addEventListener(type,event=>{if(event.button!==3&&event.button!==4)return;event.preventDefault();if(type==='mousedown')window.PDFGridNavigation.move(event.button===3?-1:1)},true);
 window.PDFGridSession.start({tabs:()=>pdfTabs,active:()=>activePdfTab,activate:activatePdfTab,restore:async(file,state,id)=>{
  const tab=activePdfTab?.hasFile?createPdfTab():activePdfTab||createPdfTab();tab.sessionID=id;tab.hasFile=true;activatePdfTab(tab);await tab.ready;
- if(await tab.frame.contentWindow.openFile(file,state)){tab.file=file;return tab}return null;
+ if(await tab.frame.contentWindow.openFile(file,state)){tab.file=file;return tab}tab.hasFile=false;return null;
 }});
 if (window.pdfGridDesktop) {
   let reading = false;

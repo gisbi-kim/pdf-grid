@@ -32,7 +32,9 @@ window.PDFGridSession=(()=>{
      if(!file&&record?.handle)try{file=await record.handle.getFile();file.pdfGridHandle=record.handle;fromDisk=true}catch{}
      if(!file&&record?.file){file=new File([record.file],record.name,{type:'application/pdf'});file.pdfGridSourceID=meta.sourceID}
      if(!file)continue;
-     const tab=await adapter.restore(file,meta.state,meta.id);if(!tab)continue;
+     let tab=await adapter.restore(file,meta.state,meta.id);
+     if(!tab&&fromDisk&&record?.file){file=new File([record.file],record.name,{type:'application/pdf'});file.pdfGridSourceID=meta.sourceID;tab=await adapter.restore(file,meta.state,meta.id);fromDisk=false}
+     if(!tab)continue;
      tab.sessionStored=true;
      if(meta.sourceID&&!fromDisk)tab.frame.contentWindow.notice('원본 파일을 읽지 못해 마지막으로 저장된 PDF를 복원했습니다.');
      if(fromDisk)await keep(tab,file);
@@ -42,5 +44,5 @@ window.PDFGridSession=(()=>{
   }catch{warn()}finally{loading=false;metadata()}
  }
  window.addEventListener('pagehide',metadata);
- return {ready:Promise.resolve(),start(config){this.ready=start(config);return this.ready},keep,changed,flush,drop(tab){if(tab.sessionID)void transaction('readwrite',store=>store.delete(tab.sessionID)).catch(()=>{});changed()}};
+ return {ready:Promise.resolve(),start(config){this.ready=start(config);return this.ready},keep,changed,flush,drop(tab){if(tab.sessionID){const removing=transaction('readwrite',store=>store.delete(tab.sessionID));pending.add(removing);removing.catch(()=>{}).finally(()=>pending.delete(removing))}changed()}};
 })();
