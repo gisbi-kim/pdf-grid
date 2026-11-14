@@ -52,18 +52,25 @@ func TestNativeUI(t *testing.T) {
 	})
 	os.MkdirAll(profile, 0700)
 	a := &app{token: randomToken(), instanceToken: randomToken()}
-	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.5.0.exe")
+	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.5.1.exe")
 	if err != nil {
 		t.Fatal(err)
 	}
 	updates, _ := fakeUpdates(t, setupBytes, false)
 	a.updateSource = updates
 	externalSeen := false
+	doiSeen, arxivSeen := false, false
 	a.externalOpener = func(address string) error {
-		if address != "https://example.com/pdf-link" {
+		switch address {
+		case "https://example.com/pdf-link":
+			externalSeen = true
+		case "https://doi.org/10.1000/robot.mapping":
+			doiSeen = true
+		case "https://arxiv.org/abs/2401.12345":
+			arxivSeen = true
+		default:
 			return fmt.Errorf("Unexpected external link: %s", address)
 		}
-		externalSeen = true
 		return nil
 	}
 	os.WriteFile(filepath.Join(profile, "instance-token"), []byte(a.instanceToken), 0600)
@@ -97,7 +104,7 @@ func TestNativeUI(t *testing.T) {
 		if err != nil || string(b) != string(setupBytes) {
 			return fmt.Errorf("Updater did not verify and download the expected installer")
 		}
-		if !externalSeen {
+		if !externalSeen || !doiSeen || !arxivSeen {
 			return fmt.Errorf("External-link bridge was not exercised")
 		}
 		result <- "ok"

@@ -1,5 +1,8 @@
-PDF Grid 1.5.0 for Windows 10/11 x64
+PDF Grid 1.5.1 for Windows 10/11 x64
 
+- Redesigned citation previews as light paper cards with title, authors, venue, expandable reference text, grouped-citation paging and a reference-location button.
+- DOI/arXiv buttons open the selected paper in the default browser; identifiers come only from local reference text or its PDF URL annotation. Hover makes no external metadata requests.
+- Fixed review manuscript line numbers and neighboring bibliography entries contaminating previews.
 - Restore window position/size/maximization, PDF tabs/order/active tab and each tab's view/history after closing and restarting. Native PDFs reread their sources; missing originals use cached snapshots with a notice. Generated PDFs are cached too; passwords are not stored.
 - Add per-tab reading history: `[` / `]`, mouse back/forward and visible footer controls return to previous/next PDF link positions, with destination page labels.
 - Hover/focus embedded citation links for an in-place reference card extracted locally from the PDF. No paper text or titles are sent to external metadata services.
