@@ -25,7 +25,7 @@ window.PDFGridSession=(()=>{
   try{
    const saved=JSON.parse(localStorage.getItem(KEY)||'null');
    if(saved?.version===1&&Array.isArray(saved.tabs)){
-    for(const meta of saved.tabs.slice(0,100)){
+    for(const meta of saved.tabs){
      if(typeof meta.id!=='string'||meta.id.length>100)continue;
      let record=null;try{record=await transaction('readonly',store=>store.get(meta.id))}catch{}let file=null,fromDisk=false;
      if(meta.sourceID)try{const source=await pdfGridDesktop.refreshPDF(meta.sourceID);file=new File([source.bytes],source.name,{type:'application/pdf'});file.pdfGridSourceID=source.sourceID;fromDisk=true}catch{}
