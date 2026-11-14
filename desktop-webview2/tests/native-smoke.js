@@ -36,11 +36,12 @@
    frame.go(1);await until(()=>frame.document.querySelector('.sheet .pdfLinkLayer')?.children.length===3);frame.document.querySelector('.sheet a[href="https://example.com/pdf-link"]').click();await sleep(100);
    const originalTabCount=document.querySelectorAll('#pdfTabList [role=tab]').length;
    frame.go(10);await sleep(100);const previousScroll=stage.scrollTop;
-   for(const [key,count] of [['reload-f5',25],['reload-ctrl-r',26]]){
+   for(const [key,count] of [['reload-f5',25],['reload-ctrl-r',26],['reload-button',27]]){
     const rebuilt=await createPDFGridFixture(PDFLib,count);
     frame.document.querySelector('#toast').textContent='';
     if(key==='reload-f5')stage.focus();else document.querySelector('#devStatus').focus();
     await nativeTestStage(key+':'+btoa(String.fromCharCode(...rebuilt)));
+    if(key==='reload-button')document.querySelector('#reloadPDF').click();
     await until(()=>frame.document.querySelectorAll('.sheet').length===count && frame.document.querySelector('#toast').textContent==='최신 PDF를 다시 불러왔습니다.');
     if(document.querySelectorAll('#pdfTabList [role=tab]').length!==originalTabCount)throw new Error('Reload lost open tabs');
     if(Math.abs(stage.scrollTop-previousScroll)>4)throw new Error('Reload lost reading position: '+key+' '+previousScroll+' -> '+stage.scrollTop);

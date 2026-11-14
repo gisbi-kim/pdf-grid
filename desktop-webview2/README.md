@@ -1,4 +1,4 @@
-# PDF Grid 1.4.4 — Windows 경량 버전
+# PDF Grid 1.4.5 — Windows 경량 버전
 
 1.4.1은 설치 방식 화면에 **기존 프로그램 강제 정리 후 재설치**를 추가합니다. 제공받은 1.1.0 설치 파일 자체의 CRC는 정상이나, 포함된 제거 프로그램의 저장 CRC는 `0e68a969`, 실제 계산값은 `456ea5df`로 불일치합니다. 강제 모드는 이 제거 프로그램을 실행하지 않고 `force-cleanup.nsh`의 정확한 프로그램 파일 81개와 해당 앱의 등록 정보만 정리합니다. 폴더를 재귀적으로 삭제하거나 확장자 와일드카드로 지우지 않습니다. 드라이브 루트·개인/시스템 기본 폴더·연결 폴더는 거부합니다. PDF 파일과 사용자 프로필 보존은 실제 손상된 1.1.0 제거 파일을 넣은 Windows 테스트에서 확인했습니다.
 
@@ -53,3 +53,7 @@ Edit `../dev/` and `../viewer/index.html`, then run `python scripts/sync-ui.py` 
 Ctrl+R and F5 reread the active PDF from its original disk path, preserving open tabs and the current view. Native PDF picking keeps opaque source identifiers; JavaScript cannot supply arbitrary refresh paths. File-association/command-line PDFs use the same source tracking. Drag/drop uses file-system handles when available. In-memory merge/split results redraw from their retained bytes. Missing, locked or invalid files leave the old PDF visible; retry after the build finishes. An empty viewer reloads the app UI. These shortcuts refresh document contents, not the installed executable; the blue update button still installs app releases.
 
 Native integration testing replaces a PDF on disk, sends actual F5 with the iframe focused and Ctrl+R with the ribbon focused, and verifies new page counts, unchanged tab count and reading position.
+
+## 1.4.5 visible refresh button
+
+The ribbon shows **↻ 새로고침** beside 격자 보기 while the viewer is selected. It runs the same installed-app PDF reread as Ctrl+R/F5; it is disabled while refreshing. In the web edition it performs a normal browser page reload. The Windows native test also replaces the on-disk PDF and clicks the button, verifying new content and unchanged tabs/position.
