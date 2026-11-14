@@ -47,7 +47,7 @@ for($n=0;$n -lt 300;$n++){
    }
    Write-Host ([SaveDialog]::Windows($AppPid))
    [SaveDialog]::PostMessage([SaveDialog]::GetDlgItem($dialog,2),0xF5,[IntPtr]::Zero,[IntPtr]::Zero)|Out-Null
-   throw 'PDF open dialog did not accept the fixture path' 
+   throw 'PDF open dialog did not accept the fixture path'
   }
   if($edit -ne [IntPtr]::Zero -and ([SaveDialog]::ControlText($edit) -eq [IO.Path]::GetFileName($Destination) -or [SaveDialog]::ControlText($edit) -eq [IO.Path]::GetFileNameWithoutExtension($Destination))){
    # Accept the real dialog's default filename and Downloads folder. The native
