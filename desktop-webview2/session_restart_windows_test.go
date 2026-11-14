@@ -136,7 +136,7 @@ func TestNativeUISessionPhase(t *testing.T) {
               }
               const generated=await createPDFGridFixture(PDFLib,12);await openPdfTabs([new File([generated],'Generated.pdf',{type:'application/pdf'})]);
               document.querySelector('#pdfTabList [role=tab]').click();const frame=document.querySelector('.pdfTabPanel[aria-hidden=false] iframe').contentWindow;
-              frame.setGridViewportRows(1);frame.go(1);await frame.followPDFDestination('cite.mapping');
+              frame.setGridViewportRows(1);frame.go(1);await frame.followPDFDestination('cite.mapping');await new Promise(r=>setTimeout(r,180));
               const expected={names:[...document.querySelectorAll('#pdfTabList [role=tab]')].map(t=>t.textContent),active:'Session-A.pdf',state:frame.gridReloadState()};
               await PDFGridSession.flush();await nativeSessionFinish(JSON.stringify(expected));
             }else{
@@ -145,7 +145,7 @@ func TestNativeUISessionPhase(t *testing.T) {
               if(document.querySelector('#pdfTabList [aria-selected=true]').textContent!==sessionTestExpected.active)throw Error('Restored active tab');
               const frame=document.querySelector('.pdfTabPanel[aria-hidden=false] iframe').contentWindow;
               await wait(()=>frame.document.querySelectorAll('.sheet').length===24);
-              const state=frame.gridReloadState();if(sessionTestPhase.startsWith('read-')&&(Math.abs(state.view.top-sessionTestExpected.state.view.top)>4||Math.abs(state.view.scale-sessionTestExpected.state.view.scale)>.002))throw Error('Restored reading view');
+              await nativeSessionAssertWindow();await new Promise(r=>setTimeout(r,180));const state=frame.gridReloadState();if(sessionTestPhase.startsWith('read-')&&(Math.abs(state.view.top-sessionTestExpected.state.view.top)>4||Math.abs(state.view.scale-sessionTestExpected.state.view.scale)>.002))throw Error('Restored reading view '+JSON.stringify({expected:sessionTestExpected.state.view,actual:state.view}));
               if(state.navigation.entries.length<2||!frame.document.querySelector('#historyBack').textContent.includes('1쪽'))throw Error('Restored link history');
               await nativeSessionAssertWindow();await new Promise(r=>setTimeout(r,150));await nativeSessionFinish(sessionTestPhase==='write-maximized'?JSON.stringify({...sessionTestExpected,state:frame.gridReloadState()}):'');
             }
