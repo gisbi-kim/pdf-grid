@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -24,7 +25,7 @@ import (
 //go:embed web
 var assets embed.FS
 
-const version = "1.4.5"
+const version = "1.4.6"
 const identity = "pdf-grid-webview2-v1"
 const address = "127.0.0.1:49383"
 
@@ -91,7 +92,7 @@ func (a *app) handler() http.Handler {
 				http.Error(w, "Method", 405)
 				return
 			}
-			json.NewEncoder(w).Encode(map[string]string{"app": identity, "version": version})
+			json.NewEncoder(w).Encode(map[string]string{"app": identity, "version": version, "pid": strconv.Itoa(os.Getpid())})
 		case "/_desktop/open":
 			if r.Method != "POST" || r.Header.Get("X-Instance-Token") != a.instanceToken {
 				http.Error(w, "Forbidden", 403)
@@ -198,6 +199,7 @@ func main() {
 			if info["app"] == identity {
 				secret, err := os.ReadFile(filepath.Join(profile, "instance-token"))
 				if err == nil {
+					allowPDFWindowActivation(info["pid"])
 					b, _ := json.Marshal(paths)
 					req, _ := http.NewRequest("POST", "http://"+address+"/_desktop/open", bytes.NewReader(b))
 					req.Header.Set("X-Instance-Token", string(secret))

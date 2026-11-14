@@ -51,7 +51,7 @@ func TestNativeUI(t *testing.T) {
 	})
 	os.MkdirAll(profile, 0700)
 	a := &app{token: randomToken(), instanceToken: randomToken()}
-	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.4.5.exe")
+	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.4.6.exe")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,10 +103,58 @@ func TestNativeUI(t *testing.T) {
 		return nil
 	}
 	var reloadSample string
+	var expectedWindow *testWindowState
+	var pickerDriver *exec.Cmd
 	windowTestHook = func(w webview.WebView) {
 		w.Bind("nativeTestStage", func(stage string) error {
 			if stage == "ready" {
 				t.Logf("Native viewer fully loaded: %s (CI host, not an Electron comparison)", time.Since(started))
+				return nil
+			}
+			if stage == "assert-window" {
+				if pickerDriver != nil {
+					err := pickerDriver.Wait()
+					pickerDriver = nil
+					if err != nil {
+						return err
+					}
+				}
+				return assertTestWindowState(uintptr(w.Window()), expectedWindow)
+			}
+			if strings.HasPrefix(stage, "window-forward:") || strings.HasPrefix(stage, "window-picker:") {
+				parts := strings.SplitN(stage, ":", 3)
+				if len(parts) != 3 {
+					return fmt.Errorf("Invalid window test stage")
+				}
+				data, err := base64.StdEncoding.DecodeString(parts[2])
+				if err != nil {
+					return err
+				}
+				name := strings.ReplaceAll(parts[0]+"-"+parts[1], ":", "-") + ".pdf"
+				sample := filepath.Join(t.TempDir(), name)
+				if err = os.WriteFile(sample, data, 0600); err != nil {
+					return err
+				}
+				w.Dispatch(func() {
+					var err error
+					expectedWindow, err = prepareTestWindowState(uintptr(w.Window()), parts[1])
+					if err == nil && parts[0] == "window-picker" {
+						pickerDriver = exec.Command("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "tests/save-dialog.ps1", "-AppPid", strconv.Itoa(os.Getpid()), "-Destination", sample, "-OpenFile")
+						pickerDriver.Stdout, pickerDriver.Stderr = os.Stdout, os.Stderr
+						err = pickerDriver.Start()
+					} else if err == nil {
+						exe, pathErr := filepath.Abs("PDF-Grid.exe")
+						if pathErr != nil {
+							err = pathErr
+						} else {
+							err = exec.Command(exe, sample).Run()
+						}
+					}
+					if err != nil {
+						result <- err.Error()
+						w.Terminate()
+					}
+				})
 				return nil
 			}
 			if strings.HasPrefix(stage, "reload-f5:") || strings.HasPrefix(stage, "reload-ctrl-r:") || strings.HasPrefix(stage, "reload-button:") {
@@ -179,7 +227,12 @@ func TestNativeUI(t *testing.T) {
 			}
 		}()
 	}
-	defer func() { windowTestHook = nil }()
+	defer func() {
+		windowTestHook = nil
+		if pickerDriver != nil && pickerDriver.Process != nil {
+			pickerDriver.Process.Kill()
+		}
+	}()
 	if err := runWindow(a, profile, "http://"+address+"/dev/"); err != nil {
 		t.Fatal(err)
 	}
@@ -198,5 +251,5 @@ func TestNativeUI(t *testing.T) {
 	if err != nil || !strings.HasPrefix(string(b), "%PDF-") {
 		t.Fatalf("Native save: %v", err)
 	}
-	t.Log("PASS actual WebView2: merge, save, split, clipboard, PDF forwarding, rebuilt PDF reload via actual F5/Ctrl+R and the visible refresh button, keyboard navigation, PDF links/outline, external-link bridge, update UI and verified installer launch handoff")
+	t.Log("PASS actual WebView2: merge, save, split, clipboard, PDF forwarding, rebuilt PDF reload via actual F5/Ctrl+R and the visible refresh button, window placement during forwarded and native-picked PDFs, keyboard navigation, PDF links/outline, external-link bridge, update UI and verified installer launch handoff")
 }

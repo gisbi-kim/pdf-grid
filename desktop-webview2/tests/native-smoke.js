@@ -46,6 +46,19 @@
     if(document.querySelectorAll('#pdfTabList [role=tab]').length!==originalTabCount)throw new Error('Reload lost open tabs');
     if(Math.abs(stage.scrollTop-previousScroll)>4)throw new Error('Reload lost reading position: '+key+' '+previousScroll+' -> '+stage.scrollTop);
    }
+   for(const source of ['window-forward','window-picker']){
+    const modes=source==='window-forward'?['normal','maximized','minimized-normal','minimized-maximized']:['normal','maximized'];
+    for(const mode of modes){
+     const beforeTabs=document.querySelectorAll('#pdfTabList [role=tab]').length;
+     await nativeTestStage(source+':'+mode+':'+btoa(String.fromCharCode(...pdfBytes)));
+     if(source==='window-picker')await window.pickPdfTabs();
+     const name=source+'-'+mode+'.pdf';
+     await until(()=>document.querySelector('#pdfTabList').textContent.includes(name));
+     await sleep(100);
+     if(document.querySelectorAll('#pdfTabList [role=tab]').length!==beforeTabs+1)throw new Error('PDF open did not add exactly one tab');
+     await nativeTestStage('assert-window');
+    }
+   }
    document.querySelector('#checkForUpdates').click();await until(()=>!document.querySelector('#installUpdate').hidden);
    if(!document.querySelector('#updateStatus').textContent.includes('9.9.9'))throw new Error('Update UI did not show latest version');
    document.querySelector('#updateClose').click();const latest=await pdfGridDesktop.checkForUpdates();

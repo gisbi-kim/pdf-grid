@@ -200,6 +200,7 @@ func runWindow(a *app, profile, url string) error {
 					files = append(files, file)
 				}
 			}
+			revealPDFWindow(hwnd)
 			completeTask(id, files, err)
 		})
 		return nil
@@ -212,8 +213,7 @@ func runWindow(a *app, profile, url string) error {
 	a.mu.Lock()
 	a.notify = func() {
 		w.Dispatch(func() {
-			user32.NewProc("ShowWindow").Call(hwnd, 9)
-			user32.NewProc("SetForegroundWindow").Call(hwnd)
+			revealPDFWindow(hwnd)
 			w.Eval("window.dispatchEvent(new Event('pdf-open-requested'))")
 		})
 	}
