@@ -38,6 +38,7 @@
    frame.go(10);await sleep(100);const previousScroll=stage.scrollTop;
    for(const [key,count] of [['reload-f5',25],['reload-ctrl-r',26]]){
     const rebuilt=await createPDFGridFixture(PDFLib,count);
+    frame.document.querySelector('#toast').textContent='';
     if(key==='reload-f5')stage.focus();else document.querySelector('#devStatus').focus();
     await nativeTestStage(key+':'+btoa(String.fromCharCode(...rebuilt)));
     await until(()=>frame.document.querySelectorAll('.sheet').length===count && frame.document.querySelector('#toast').textContent==='최신 PDF를 다시 불러왔습니다.');
