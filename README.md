@@ -40,7 +40,8 @@ PDF 파일은 브라우저 안에서 처리되며 서버로 업로드되지 않�
 | [1.4.2](https://github.com/gisbi-kim/pdf-grid/releases/tag/desktop-v1.4.2-build.16) | Windows 행 이동·PDF 링크·목차·업데이트 확인 | 기존 웹 기본 화면과 별도 UI |
 | [1.4.3](https://github.com/gisbi-kim/pdf-grid/releases/tag/desktop-v1.4.3-build.18) | 설치판 UI를 웹 기본 화면에 통합, DEV 상태 안내·GitHub 버튼, 공유 UI 생성·검사 | 브라우저에는 OS 파일 연결·설치판 업데이트 기능 없음 |
 | [1.4.4](https://github.com/gisbi-kim/pdf-grid/releases/tag/desktop-v1.4.4-build.23) | 설치판 Ctrl+R/F5로 PDF 원본 다시 읽기, 탭·보기 위치 유지 | 파일 없는 화면은 앱 UI 새로고침, 앱 바이너리 업데이트는 기존 업데이트 버튼 사용 |
-| 1.4.5 | 상단 ↻ 새로고침 버튼 추가, 설치판 단축키와 동일한 PDF 다시 읽기 | 웹 버튼은 브라우저 페이지 새로고침 |
+| [1.4.5](https://github.com/gisbi-kim/pdf-grid/releases/tag/desktop-v1.4.5-build.25) | 상단 ↻ 새로고침 버튼 추가, 설치판 단축키와 동일한 PDF 다시 읽기 | 웹 버튼은 브라우저 페이지 새로고침 |
+| 1.4.6 | 새 PDF 탭을 열 때 현재 창 크기·위치·최대화 상태 유지 | 최소화된 창만 이전 상태로 복원, Windows 활성화 정책 적용 |
 
 ## Windows app
 

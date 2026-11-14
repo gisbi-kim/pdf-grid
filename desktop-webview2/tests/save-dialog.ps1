@@ -1,4 +1,4 @@
-param([int]$AppPid,[string]$Destination)
+param([int]$AppPid,[string]$Destination,[switch]$OpenFile)
 $ErrorActionPreference='Stop'
 Add-Type @'
 using System;
@@ -30,8 +30,15 @@ public class SaveDialog {
 for($n=0;$n -lt 300;$n++){
  $dialog=[SaveDialog]::Find($AppPid)
  if($dialog -ne [IntPtr]::Zero){
-  Write-Host "Native save dialog: $([SaveDialog]::Text($dialog))"
+  Write-Host "Native file dialog: $([SaveDialog]::Text($dialog))"
   $edit=[SaveDialog]::Edit($dialog)
+  if($OpenFile -and $edit -ne [IntPtr]::Zero){
+   if(!(Test-Path -LiteralPath $Destination)){throw 'Open fixture missing'}
+   [SaveDialog]::SetWindowText($edit,$Destination)|Out-Null
+   [SaveDialog]::PostMessage([SaveDialog]::GetDlgItem($dialog,1),0xF5,[IntPtr]::Zero,[IntPtr]::Zero)|Out-Null
+   Write-Host "Accepted native PDF open: $Destination"
+   exit 0
+  }
   if($edit -ne [IntPtr]::Zero -and ([SaveDialog]::ControlText($edit) -eq [IO.Path]::GetFileName($Destination) -or [SaveDialog]::ControlText($edit) -eq [IO.Path]::GetFileNameWithoutExtension($Destination))){
    # Accept the real dialog's default filename and Downloads folder. The native
    # test verifies the resulting PDF bytes at that path after completion.
