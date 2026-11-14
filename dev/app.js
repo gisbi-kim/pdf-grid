@@ -397,6 +397,7 @@ for (const [id, target] of [['mergeDrop', 'merge'], ['splitDrop', 'split']]) {
 }
 window.addEventListener('dragover', event => event.preventDefault()); window.addEventListener('drop', event => event.preventDefault());
 window.addEventListener('resize', () => { $('viewer').style.top = document.querySelector('nav').getBoundingClientRect().bottom + 'px'; });
+new ResizeObserver(() => { $('viewer').style.top = document.querySelector('nav').getBoundingClientRect().bottom + 'px'; }).observe(document.querySelector('nav'));
 if (!lib || !core || !window.JSZip) { message('PDF 도구를 불러오지 못했습니다. 페이지를 새로고침해 주세요.', true); document.querySelectorAll('button').forEach(el => el.disabled = true); } else refresh();
 
 window.addEventListener('hashchange', () => { if (!busy && ['merge', 'split', 'viewer', 'local'].includes(location.hash.slice(1))) setTab(location.hash.slice(1)); });

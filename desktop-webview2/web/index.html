@@ -214,6 +214,7 @@ async function openFile(file,restored=null){
     if(restored?.view){cols=Math.max(1,Math.min(10,Math.round(Number(restored.view.cols)||2)));$('cols').value=cols}
     $('filename').textContent=file.name;$('empty').style.display='none';stage.classList.add('ready');await layout();if(id!==loadGeneration)return;
     if(restored?.view){
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));if(id!==loadGeneration)return;
       const view=restored.view,zoom=Number(view.zoom),absolute=Number(view.scale);scale=Number.isFinite(absolute)&&absolute>0?Math.max(minimumGridScale(),Math.min(fitScale*16,absolute)):fitScale*Math.max(minimumGridScale()/fitScale,Math.min(16,Number.isFinite(zoom)?zoom:1));position();
       stage.scrollLeft=Math.max(0,Number(view.left)||0)*scale;stage.scrollTop=Math.max(0,Number(view.top)||0)*scale;controls();scheduleRender();
     }
