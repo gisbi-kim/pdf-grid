@@ -23,6 +23,18 @@
    const frame=document.querySelector('.pdfTabPanel[aria-hidden="false"] iframe').contentWindow;
    await until(()=>frame.document.querySelectorAll('.sheet').length===24);
    const stage=frame.document.querySelector('#stage');
+   frame.setGridViewportRows(2);frame.go(5);
+   frame.document.querySelector('button[data-mode="text"]').click();
+   await until(()=>frame.document.querySelectorAll('.sheet')[4]?.querySelector('.searchTextLayer span'));
+   const word=frame.document.querySelectorAll('.sheet')[4].querySelector('.searchTextLayer span'),range=frame.document.createRange();
+   range.selectNodeContents(word);frame.getSelection().removeAllRanges();frame.getSelection().addRange(range);
+   const selectionText=frame.getSelection().toString(),selectionScale=frame.gridReloadState().view.scale,selectionTop=stage.scrollTop,selectionLeft=stage.scrollLeft;
+   word.dispatchEvent(new frame.MouseEvent('dblclick',{bubbles:true,cancelable:true,detail:2}));
+   if(frame.gridReloadState().view.scale!==selectionScale||stage.scrollTop!==selectionTop||stage.scrollLeft!==selectionLeft||frame.getSelection().toString()!==selectionText)throw Error('Text double-click changed selection, zoom or scroll');
+   frame.document.querySelector('button[data-mode="area"]').click();
+   frame.document.querySelectorAll('.sheet')[4].dispatchEvent(new frame.MouseEvent('dblclick',{bubbles:true,cancelable:true,detail:2}));
+   if(frame.gridReloadState().view.scale!==selectionScale||stage.scrollTop!==selectionTop)throw Error('Area double-click zoomed the page');
+   frame.document.querySelector('button[data-mode="hand"]').click();
    for(const rows of [1,2,10]){
     frame.setGridViewportRows(rows);frame.go(1);stage.focus();let steps=0;
     while(!frame.document.querySelector('#next').disabled){const before=stage.scrollTop;stage.dispatchEvent(new frame.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));if(stage.scrollTop<=before)throw new Error('Right arrow stalled');if(++steps>40)throw new Error('Forward navigation did not reach bottom');await sleep(10)}
