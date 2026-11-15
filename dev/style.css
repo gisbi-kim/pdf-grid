@@ -24,6 +24,12 @@
 .documentTabs button { border: 0; background: transparent; border-radius: 4px; padding: 3px 7px; font-size: 12px; white-space: nowrap; }
 .documentTabs button:hover { background: #3b454f; }
 .pdfTab [role=tab] { flex: 1 1 0; min-width: 0; padding-inline: 4px; overflow: hidden; text-overflow: ellipsis; }
+.pdfTab .pdfTabReload { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 22px; width: 22px; height: 22px; padding: 3px; margin-left: 2px; color: #aab4be; }
+.pdfTab .pdfTabReload:hover:enabled { color: #c7f481; }
+.pdfTabReload svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.pdfTabReload[aria-busy=true] svg { animation: tabRefreshSpin 1s linear infinite; }
+@keyframes tabRefreshSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .pdfTabReload[aria-busy=true] svg { animation: none; } }
 @container (max-width: 50px) { .pdfTab button:not([role=tab]) { display: none; } }
 .pdfTab [aria-selected=true] { color: #c7f481; }
 #addPDFTab { font-size: 17px; line-height: 18px; }
