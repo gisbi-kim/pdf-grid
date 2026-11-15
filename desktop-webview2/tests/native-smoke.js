@@ -81,11 +81,25 @@
     frame.document.querySelector('#toast').textContent='';
     if(key==='reload-f5')stage.focus();else document.querySelector('#devStatus').focus();
     await nativeTestStage(key+':'+btoa(String.fromCharCode(...rebuilt)));
-    if(key==='reload-button')document.querySelector('#reloadPDF').click();
+    if(key==='reload-button')document.querySelector('.pdfTab:has([aria-selected="true"]) .pdfTabReload').click();
     await until(()=>frame.document.querySelectorAll('.sheet').length===count && frame.document.querySelector('#toast').textContent==='최신 PDF를 다시 불러왔습니다.');
     if(document.querySelectorAll('#pdfTabList [role=tab]').length!==originalTabCount)throw new Error('Reload lost open tabs');
     if(Math.abs(stage.scrollTop-previousScroll)>4)throw new Error('Reload lost reading position: '+key+' '+previousScroll+' -> '+stage.scrollTop);
    }
+   if(document.querySelector('#reloadPDF'))throw Error('Separate ribbon refresh button remains');
+   const sourceTab=document.querySelector('.pdfTab:has([aria-selected="true"])');
+   await openPdfTabs([new File([pdfBytes],'Other-reading.pdf',{type:'application/pdf'})]);
+   const otherFrame=document.querySelector('.pdfTabPanel[aria-hidden="false"] iframe').contentWindow;
+   otherFrame.setGridViewportRows(1);otherFrame.go(7);await sleep(100);
+   const otherView=JSON.stringify(otherFrame.gridReloadState());
+   frame.document.querySelector('#toast').textContent='';
+   await nativeTestStage('reload-button:'+btoa(String.fromCharCode(...await createPDFGridFixture(PDFLib,28))));
+   sourceTab.querySelector('.pdfTabReload').click();
+   if(!sourceTab.querySelector('.pdfTabReload').disabled)throw Error('Refresh icon did not indicate progress');
+   await until(()=>frame.document.querySelectorAll('.sheet').length===28&&frame.document.querySelector('#toast').textContent==='최신 PDF를 다시 불러왔습니다.');
+   if(document.querySelector('.pdfTabPanel[aria-hidden="false"] iframe').contentWindow!==otherFrame||JSON.stringify(otherFrame.gridReloadState())!==otherView)throw Error('Background refresh changed the active tab or its view');
+   if(document.querySelectorAll('#pdfTabList [role=tab]').length!==originalTabCount+1)throw Error('Background refresh changed tab count');
+   sourceTab.querySelector('[role=tab]').click();
    for(const source of ['window-forward','window-picker']){
     const modes=source==='window-forward'?['normal','maximized','minimized-normal','minimized-maximized']:['normal','maximized'];
     for(const mode of modes){

@@ -1,30 +1,32 @@
 'use strict';
 window.PDFGridReload = (() => {
-  let currentTab, isBusy, refreshing = false;
-  async function refresh() {
-    if (refreshing || isBusy() || document.querySelector('#updateDialog[open]')) return;
-    const tab = currentTab();
+  let currentTab, isBusy;
+  const refreshing = new WeakSet();
+  async function refresh(tab = currentTab()) {
+    if (isBusy() || document.querySelector('#updateDialog[open]') || tab && refreshing.has(tab)) return;
     if (!tab?.hasFile) { location.reload(); return; }
-    refreshing = true;
-    const button = document.getElementById('reloadPDF');
+    refreshing.add(tab);
+    const button = tab.reload;
     button.disabled = true;
     button.setAttribute('aria-busy', 'true');
+    tab.close.disabled = true;
     const viewer = tab.frame.contentWindow;
     try {
       const state = viewer.gridReloadState();
+      const original = tab.file || viewer.gridReloadFile();
       let file, disk = false;
-      if (tab.file?.pdfGridSourceID) {
-        const source = await window.pdfGridDesktop.refreshPDF(tab.file.pdfGridSourceID);
+      if (original?.pdfGridSourceID) {
+        const source = await window.pdfGridDesktop.refreshPDF(original.pdfGridSourceID);
         file = new File([source.bytes], source.name, {type:'application/pdf'});
         file.pdfGridSourceID = source.sourceID;
         disk = true;
-      } else if (tab.file?.pdfGridHandle) {
-        file = await tab.file.pdfGridHandle.getFile();
-        file.pdfGridHandle = tab.file.pdfGridHandle;
+      } else if (original?.pdfGridHandle) {
+        file = await original.pdfGridHandle.getFile();
+        file.pdfGridHandle = original.pdfGridHandle;
         disk = true;
       } else {
         // Generated PDFs have no disk source; keep their in-memory result intact.
-        file = tab.file;
+        file = original;
       }
       if (!file) throw new Error('원본 PDF를 다시 열어 주세요.');
       if (await viewer.openFile(file, state)) {
@@ -34,7 +36,7 @@ window.PDFGridReload = (() => {
       }
     } catch (error) {
       viewer.notice('새로고침하지 못했습니다. 기존 PDF는 유지됩니다. ' + (error.message || '빌드가 끝난 뒤 다시 시도해 주세요.'));
-    } finally { refreshing = false; button.disabled = false; button.removeAttribute('aria-busy'); }
+    } finally { refreshing.delete(tab); button.disabled = !tab.hasFile; button.removeAttribute('aria-busy'); tab.close.disabled = false; }
   }
   function bind(doc) {
     if (!window.pdfGridDesktop) return;
@@ -48,8 +50,5 @@ window.PDFGridReload = (() => {
   }
   return {setup(getTab, busy) {
     currentTab = getTab; isBusy = busy; bind(document);
-    const button = document.getElementById('reloadPDF');
-    button.title = window.pdfGridDesktop ? '현재 PDF 새로고침 (Ctrl+R / F5)' : '페이지 새로고침';
-    button.onclick = () => { if (window.pdfGridDesktop) void refresh(); else location.reload(); };
   }, bind, refresh};
 })();

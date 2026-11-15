@@ -52,7 +52,7 @@ func TestNativeUI(t *testing.T) {
 	})
 	os.MkdirAll(profile, 0700)
 	a := &app{token: randomToken(), instanceToken: randomToken()}
-	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.5.3.exe")
+	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.5.4.exe")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -284,5 +284,5 @@ func TestNativeUI(t *testing.T) {
 	if err != nil || !strings.HasPrefix(string(b), "%PDF-") {
 		t.Fatalf("Native save: %v", err)
 	}
-	t.Log("PASS actual WebView2: merge, save, split, clipboard, PDF forwarding, rebuilt PDF reload via actual F5/Ctrl+R and the visible refresh button, window placement during forwarded and native-picked PDFs, keyboard navigation, PDF links/outline, external-link bridge, update UI and verified installer launch handoff")
+	t.Log("PASS actual WebView2: merge, save, split, clipboard, PDF forwarding, rebuilt PDF reload via actual F5/Ctrl+R and the per-tab refresh icon, window placement during forwarded and native-picked PDFs, keyboard navigation, PDF links/outline, external-link bridge, update UI and verified installer launch handoff")
 }

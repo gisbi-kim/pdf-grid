@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const lib = window.PDFLib, core = window.PDFGridTools;
 let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab = 'merge', busy = false;
 const MAX_BYTES = 100 * 1024 * 1024;
-const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.5.3' : '../viewer/?v=1.5.3';
+const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.5.4' : '../viewer/?v=1.5.4';
 function addGridSteppers(view) {
   const frame = view.defaultView;
   const columns = view.getElementById('cols');
@@ -134,6 +134,7 @@ function createPdfTab() {
     panel: document.createElement('div'),
     item: document.createElement('div'),
     button: document.createElement('button'),
+    reload: document.createElement('button'),
     close: document.createElement('button'),
     hasFile: false,
   };
@@ -147,6 +148,11 @@ function createPdfTab() {
   tab.button.setAttribute('role', 'tab');
   tab.button.setAttribute('aria-controls', tab.panel.id);
   tab.button.onclick = () => activatePdfTab(tab, true);
+  tab.reload.type = 'button';
+  tab.reload.className = 'pdfTabReload';
+  tab.reload.disabled = true;
+  tab.reload.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M13 6a5.3 5.3 0 1 0 .1 3M13 2v4H9"/></svg>';
+  tab.reload.onclick = () => void window.PDFGridReload.refresh(tab);
   tab.close.textContent = '×';
   tab.close.onclick = () => {
     const index = pdfTabs.indexOf(tab);
@@ -160,6 +166,8 @@ function createPdfTab() {
   function setName(name) {
     tab.button.textContent = tab.button.title = name;
     tab.close.setAttribute('aria-label', name + ' 닫기');
+    tab.reload.setAttribute('aria-label', name + ' 새로고침');
+    tab.reload.title = name + ' 새로고침';
   }
   setName('새 탭');
   tab.ready = new Promise(resolve => {
@@ -171,6 +179,7 @@ function createPdfTab() {
         const syncName = () => {
           if (!view.getElementById('stage').classList.contains('ready')) return;
           tab.hasFile = true;
+          tab.reload.disabled = tab.reload.getAttribute('aria-busy') === 'true';
           setName(filename.textContent);
         };
         new MutationObserver(syncName).observe(filename, {childList: true, characterData: true, subtree: true});
@@ -181,7 +190,7 @@ function createPdfTab() {
   });
   tab.frame.src = GRID_VIEWER_URL + '&desktop=tab' + (!window.pdfGridDesktop && id === 1 ? '&restore=1' : '');
   tab.panel.append(tab.frame);
-  tab.item.append(tab.button, tab.close);
+  tab.item.append(tab.reload, tab.button, tab.close);
   pdfTabs.push(tab);
   $('pdfTabList').style.setProperty('--pdf-tab-count', pdfTabs.length);
   $('pdfTabList').append(tab.item);
@@ -243,7 +252,6 @@ function message(text, error = false) { $('feedback').textContent = text; $('fee
 function clearResults() { outputURLs.forEach(url => URL.revokeObjectURL(url)); outputURLs = []; outputs = []; $('results').hidden = true; $('resultList').replaceChildren(); }
 function setTab(name) {
   activeTab = name;
-  $('reloadPDF').hidden = name !== 'viewer';
   document.querySelector('.documentTabs').hidden = name !== 'viewer';
   for (const tab of document.querySelectorAll('[data-tab]')) tab.setAttribute('aria-pressed', String(tab.dataset.tab === name));
   for (const id of ['merge', 'split', 'viewer', 'local']) $(id).hidden = id !== name;
