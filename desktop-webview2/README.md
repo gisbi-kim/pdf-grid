@@ -1,4 +1,4 @@
-# PDF Grid 1.5.2 — Windows 경량 버전
+# PDF Grid 1.5.3 — Windows 경량 버전
 
 1.4.1은 설치 방식 화면에 **기존 프로그램 강제 정리 후 재설치**를 추가합니다. 제공받은 1.1.0 설치 파일 자체의 CRC는 정상이나, 포함된 제거 프로그램의 저장 CRC는 `0e68a969`, 실제 계산값은 `456ea5df`로 불일치합니다. 강제 모드는 이 제거 프로그램을 실행하지 않고 `force-cleanup.nsh`의 정확한 프로그램 파일 81개와 해당 앱의 등록 정보만 정리합니다. 폴더를 재귀적으로 삭제하거나 확장자 와일드카드로 지우지 않습니다. 드라이브 루트·개인/시스템 기본 폴더·연결 폴더는 거부합니다. PDF 파일과 사용자 프로필 보존은 실제 손상된 1.1.0 제거 파일을 넣은 Windows 테스트에서 확인했습니다.
 
@@ -81,3 +81,7 @@ Citation previews use a light card with title, authors, venue, original-referenc
 ## 1.5.2 text selection
 
 Double-clicking a word in text-selection mode selects it without fitting the PDF page or changing scroll position. Area-copy mode also avoids double-click zoom; hand mode retains it. The shared viewer change applies to web and Windows.
+
+## 1.5.3 zoom position
+
+Ctrl+wheel and other manual zoom actions keep the reading anchor instead of re-centering an older highlighted search result. Pending search-centering callbacks are cancelled by manual zoom; explicit result navigation still centers its target.
