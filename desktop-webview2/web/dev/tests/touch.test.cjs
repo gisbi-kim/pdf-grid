@@ -20,6 +20,13 @@ function fixture(){
   return {context,stage,captures,emit};
 }
 function close(a,b){assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`)}
+test('manual zoom keeps its anchor and cancels pending search centering',()=>{
+  const {context:c,stage:s}=fixture();
+  const x=(s.scrollLeft+150-32)/c.scale,y=(s.scrollTop+200-32)/c.scale;
+  vm.runInContext('zoom(1.25,150,200)',c);
+  close(x*c.scale+32-s.scrollLeft,150);close(y*c.scale+32-s.scrollTop,200);
+  assert.equal(c.pendingSearchCenter,null);
+});
 test('pinch follows both distance and moving midpoint, including a scrolled viewport',()=>{
   const {context:c,stage:s,emit}=fixture();
   emit('pointerdown',1,120,250);emit('pointerdown',2,220,250);

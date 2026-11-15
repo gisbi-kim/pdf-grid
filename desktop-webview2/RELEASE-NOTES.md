@@ -1,5 +1,6 @@
-PDF Grid 1.5.2 for Windows 10/11 x64
+PDF Grid 1.5.3 for Windows 10/11 x64
 
+- Fixed Ctrl+wheel/manual zoom jumping from the current reading position to an older search match. Manual zoom cancels deferred search centering and preserves its anchor; explicit search-result navigation still centers the result.
 - Fixed word-selection double clicks unexpectedly fitting the PDF page and shifting the reading position. Text/area modes and PDF links no longer trigger page-fit zoom; hand mode retains it.
 - Redesigned citation previews as light paper cards with title, authors, venue, expandable reference text, grouped-citation paging and a reference-location button.
 - DOI/arXiv buttons open the selected paper in the default browser; identifiers come only from local reference text or its PDF URL annotation. Hover makes no external metadata requests.

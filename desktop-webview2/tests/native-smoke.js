@@ -35,6 +35,16 @@
    frame.document.querySelectorAll('.sheet')[4].dispatchEvent(new frame.MouseEvent('dblclick',{bubbles:true,cancelable:true,detail:2}));
    if(frame.gridReloadState().view.scale!==selectionScale||stage.scrollTop!==selectionTop)throw Error('Area double-click zoomed the page');
    frame.document.querySelector('button[data-mode="hand"]').click();
+   const searchInput=frame.document.querySelector('#searchInput');searchInput.value='Page 1';searchInput.dispatchEvent(new frame.Event('input',{bubbles:true}));
+   await until(()=>frame.document.querySelector('.searchTextLayer mark.active'));
+   frame.setGridViewportRows(1);frame.go(3);await sleep(100);
+   const zoomY=stage.clientHeight*.45,zoomAnchor=(stage.scrollTop+zoomY-32)/frame.gridReloadState().view.scale;
+   const zoomRect=stage.getBoundingClientRect();
+   stage.dispatchEvent(new frame.WheelEvent('wheel',{bubbles:true,cancelable:true,ctrlKey:true,deltaY:-120,clientX:zoomRect.left+stage.clientWidth*.7,clientY:zoomRect.top+zoomY}));
+   await sleep(100);
+   const wheelScale=frame.gridReloadState().view.scale;
+   if(Math.abs((stage.scrollTop+zoomY-32)/wheelScale-zoomAnchor)*wheelScale>2)throw Error('Ctrl+wheel jumped to an old search result');
+   searchInput.value='';searchInput.dispatchEvent(new frame.Event('input',{bubbles:true}));
    for(const rows of [1,2,10]){
     frame.setGridViewportRows(rows);frame.go(1);stage.focus();let steps=0;
     while(!frame.document.querySelector('#next').disabled){const before=stage.scrollTop;stage.dispatchEvent(new frame.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));if(stage.scrollTop<=before)throw new Error('Right arrow stalled');if(++steps>40)throw new Error('Forward navigation did not reach bottom');await sleep(10)}

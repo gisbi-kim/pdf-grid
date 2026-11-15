@@ -21,3 +21,5 @@ Version 1.5.0 adds `session.js` for installed-app PDF tab/view/history restorati
 Version 1.5.1 replaces citation popovers with light, structured paper cards, grouped-citation navigation and explicit DOI/arXiv actions. Extraction excludes aligned review line numbers and accounts for top-of-line destinations. It uses local text and entry-scoped URL annotations only; no metadata service requests. Shared tests cover identifier normalization, entry boundaries and multi-citation groups.
 
 Version 1.5.2 limits page-fit double-click zoom to hand mode. Text selection keeps the browser word-selection behavior and preserves scale/scroll; area-copy mode and PDF links also avoid page-fit zoom. Browser verification uses actual double clicks; native regression checks exercise bubbled double clicks and existing selections.
+
+Version 1.5.3 keeps manual zoom anchored to the reading point even when search highlights remain. Zoom cancels deferred search centering; a queued centering callback must still own the pending search match before moving the viewport. Search submission and explicit previous/next-result actions retain result centering.
