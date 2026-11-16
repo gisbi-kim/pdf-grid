@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const lib = window.PDFLib, core = window.PDFGridTools;
 let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab = 'merge', busy = false;
 const MAX_BYTES = 100 * 1024 * 1024;
-const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.5.4' : '../viewer/?v=1.5.4';
+const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.5.5' : '../viewer/?v=1.5.5';
 function addGridSteppers(view) {
   const frame = view.defaultView;
   const columns = view.getElementById('cols');
@@ -63,6 +63,7 @@ function compactGridViewer(frame) {
     open.onclick = view.getElementById('openEmpty').onclick = () => void window.pickPdfTabs();
   }
   window.PDFGridReload.bind(view);
+  bindTabShortcuts(view);
   const group = view.createElement('div');
   group.className = 'group documentGroup';
   group.append(filename, open, file);
@@ -113,6 +114,17 @@ const pdfTabs = [];
 let activePdfTab;
 let nextPdfTab = 0;
 window.PDFGridReload.setup(() => activePdfTab, () => busy);
+function bindTabShortcuts(view) {
+  // Chrome reserves Ctrl+W for the browser tab; only the installed host owns it.
+  if (!window.pdfGridDesktop) return;
+  view.addEventListener('keydown', event => {
+    if ((event.code !== 'KeyW' && event.key.toLowerCase() !== 'w') || !event.ctrlKey || event.altKey || event.metaKey || event.shiftKey || event.isComposing) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (!event.repeat && !busy && activeTab === 'viewer' && !document.querySelector('#updateDialog[open]')) activePdfTab?.close.click();
+  }, true);
+}
+bindTabShortcuts(document);
 
 function activatePdfTab(tab, focus = false) {
   activePdfTab = tab;
@@ -166,6 +178,7 @@ function createPdfTab() {
   function setName(name) {
     tab.button.textContent = tab.button.title = name;
     tab.close.setAttribute('aria-label', name + ' 닫기');
+    tab.close.title = name + ' 닫기' + (window.pdfGridDesktop ? ' (Ctrl+W)' : '');
     tab.reload.setAttribute('aria-label', name + ' 새로고침');
     tab.reload.title = name + ' 새로고침';
   }
