@@ -52,7 +52,7 @@ func TestNativeUI(t *testing.T) {
 	})
 	os.MkdirAll(profile, 0700)
 	a := &app{token: randomToken(), instanceToken: randomToken()}
-	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.5.4.exe")
+	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.5.5.exe")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,6 +117,16 @@ func TestNativeUI(t *testing.T) {
 		w.Bind("nativeTestStage", func(stage string) error {
 			if stage == "ready" {
 				t.Logf("Native viewer fully loaded: %s (CI host, not an Electron comparison)", time.Since(started))
+				return nil
+			}
+			if stage == "close-tab" {
+				w.Dispatch(func() {
+					user32.NewProc("SetForegroundWindow").Call(uintptr(w.Window()))
+					user32.NewProc("keybd_event").Call(0x11, 0, 0, 0)
+					user32.NewProc("keybd_event").Call(0x57, 0, 0, 0)
+					user32.NewProc("keybd_event").Call(0x57, 0, 2, 0)
+					user32.NewProc("keybd_event").Call(0x11, 0, 2, 0)
+				})
 				return nil
 			}
 			if stage == "mouse-back" || stage == "mouse-forward" {

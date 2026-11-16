@@ -113,6 +113,20 @@
      await nativeTestStage('assert-window');
     }
    }
+   for(const focus of ['pdf','ribbon','search']){
+    const active=document.querySelector('#pdfTabList [aria-selected="true"]'),before=document.querySelectorAll('#pdfTabList [role=tab]').length;
+    const view=document.querySelector('.pdfTabPanel[aria-hidden="false"] iframe').contentDocument;
+    (focus==='ribbon'?document.querySelector('#devStatus'):view.querySelector(focus==='search'?'#searchInput':'#stage')).focus();
+    await nativeTestStage('close-tab');
+    await until(()=>document.querySelectorAll('#pdfTabList [role=tab]').length===before-1);
+    if(active.isConnected||document.querySelectorAll('#pdfTabList [aria-selected="true"]').length!==1)throw Error('Ctrl+W did not close exactly the active PDF tab');
+   }
+   while(document.querySelectorAll('#pdfTabList [role=tab]').length>1)document.querySelector('.pdfTab:has([aria-selected="true"]) button[aria-label$=" 닫기"]').click();
+   document.querySelector('.pdfTabPanel[aria-hidden="false"] iframe').contentDocument.querySelector('#stage').focus();
+   await nativeTestStage('close-tab');
+   await until(()=>document.querySelector('#pdfTabList [role=tab]')?.textContent==='새 탭');
+   document.querySelector('#devStatus').focus();await nativeTestStage('close-tab');await sleep(100);
+   if(document.querySelectorAll('#pdfTabList [role=tab]').length!==1)throw Error('Closing the last tab did not retain one empty tab');
    document.querySelector('#checkForUpdates').click();await until(()=>!document.querySelector('#installUpdate').hidden);
    if(!document.querySelector('#updateStatus').textContent.includes('9.9.9'))throw new Error('Update UI did not show latest version');
    document.querySelector('#updateClose').click();const latest=await pdfGridDesktop.checkForUpdates();

@@ -1,5 +1,6 @@
-PDF Grid 1.5.4 for Windows 10/11 x64
+PDF Grid 1.5.5 for Windows 10/11 x64
 
+- Added Ctrl+W to close the active PDF tab from the PDF, search field or ribbon in the installed app. Closing the last PDF retains one empty tab and keeps the window open. The web edition preserves browser-reserved Ctrl+W.
 - Replaced the separate ribbon refresh button with a small icon on the left of each PDF tab. Refresh targets that tab, preserves the active tab and reading positions, and indicates progress locally. Native Ctrl+R/F5 still refresh the active PDF. The web icon refreshes only that document; without a file-system handle it redraws retained PDF bytes.
 - Fixed Ctrl+wheel/manual zoom jumping from the current reading position to an older search match. Manual zoom cancels deferred search centering and preserves its anchor; explicit search-result navigation still centers the result.
 - Fixed word-selection double clicks unexpectedly fitting the PDF page and shifting the reading position. Text/area modes and PDF links no longer trigger page-fit zoom; hand mode retains it.
