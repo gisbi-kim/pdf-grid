@@ -1,5 +1,7 @@
-PDF Grid 1.5.6 for Windows 10/11 x64
+PDF Grid 1.6.0 for Windows 10/11 x64
 
+- Restore the last 20 closed PDF tabs with Ctrl+Shift+T, the ↶ icon or tab menu, including original order, reading view and link history. Source files reread when available and cached closed snapshots recover missing/invalid sources. Closed history lasts for the current app/page session only.
+- Compare two PDFs side by side with independent scroll/zoom, document headings and an adjustable divider. Pane interaction selects the active PDF for shortcuts; selecting another tab replaces that pane. The native app restores the split pair, ratio and both reading views on restart. Web toolbar/menu controls support both features; reserved browser shortcuts stay unchanged.
 - Added a tab-title context menu with **절대경로 복사** (copy absolute path). The native host copies the clicked PDF source path as Unicode text without changing the active tab. Keyboard menu opening/dismissal is supported. Web, empty and pathless generated tabs explain why the command is unavailable.
 - Added Ctrl+W to close the active PDF tab from the PDF, search field or ribbon in the installed app. Closing the last PDF retains one empty tab and keeps the window open. The web edition preserves browser-reserved Ctrl+W.
 - Replaced the separate ribbon refresh button with a small icon on the left of each PDF tab. Refresh targets that tab, preserves the active tab and reading positions, and indicates progress locally. Native Ctrl+R/F5 still refresh the active PDF. The web icon refreshes only that document; without a file-system handle it redraws retained PDF bytes.

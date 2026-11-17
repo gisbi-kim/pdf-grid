@@ -1,4 +1,4 @@
-# PDF Grid 1.5.6 — Windows 경량 버전
+# PDF Grid 1.6.0 — Windows 경량 버전
 
 1.4.1은 설치 방식 화면에 **기존 프로그램 강제 정리 후 재설치**를 추가합니다. 제공받은 1.1.0 설치 파일 자체의 CRC는 정상이나, 포함된 제거 프로그램의 저장 CRC는 `0e68a969`, 실제 계산값은 `456ea5df`로 불일치합니다. 강제 모드는 이 제거 프로그램을 실행하지 않고 `force-cleanup.nsh`의 정확한 프로그램 파일 81개와 해당 앱의 등록 정보만 정리합니다. 폴더를 재귀적으로 삭제하거나 확장자 와일드카드로 지우지 않습니다. 드라이브 루트·개인/시스템 기본 폴더·연결 폴더는 거부합니다. PDF 파일과 사용자 프로필 보존은 실제 손상된 1.1.0 제거 파일을 넣은 Windows 테스트에서 확인했습니다.
 
@@ -97,3 +97,9 @@ Ctrl+W closes the active PDF tab from the PDF, search field or ribbon. An adjace
 ## 1.5.6 tab context menu
 
 Right-click a tab name and select **절대경로 복사** to copy that PDF source path as Unicode text, including spaces and Korean characters. Shift+F10/ContextMenu and Escape are supported. The command targets the clicked tab without switching the active PDF. Only authorized native source IDs resolve paths; the host copies directly to the Windows clipboard and returns success/failure. It also works for a remembered source whose file is temporarily missing. Web, empty and pathless generated tabs disable the command and explain why; native drag/drop tabs without a native source ID can be reopened with PDF 열기 to register a path.
+
+## 1.6.0 restore closed tabs and compare PDFs
+
+Ctrl+Shift+T, the ↶ toolbar icon or a tab-menu command restores the most recently closed PDF in its original order and reading view, including navigation history. Up to 20 closed Files are retained in memory until app exit; closed history is not persisted and passwords are not saved. Source PDFs are reread when possible, with the closed snapshot used if missing/invalid.
+
+The 나란히 보기 button (requires two open PDFs) or the tab-menu command places two documents side by side. Each pane scrolls/zooms independently and its heading identifies the document. Click or type in a pane to make it active for shortcuts. Drag the center separator, or focus it and press Left/Right, to change widths. Select another tab to replace the active pane; close a pane or use 나란히 끄기 to return to one PDF. The split pair, ratio and active document are restored with the native workspace on restart. Web toolbar/menu controls support both features, while browser-reserved Ctrl+Shift+T retains its usual behavior.
