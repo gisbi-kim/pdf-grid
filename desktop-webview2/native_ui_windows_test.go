@@ -52,7 +52,7 @@ func TestNativeUI(t *testing.T) {
 	})
 	os.MkdirAll(profile, 0700)
 	a := &app{token: randomToken(), instanceToken: randomToken()}
-	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.5.5.exe")
+	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.5.6.exe")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,6 +60,7 @@ func TestNativeUI(t *testing.T) {
 	a.updateSource = updates
 	externalSeen := false
 	doiSeen, arxivSeen := false, false
+	pathCopied := false
 	a.externalOpener = func(address string) error {
 		switch address {
 		case "https://example.com/pdf-link":
@@ -104,7 +105,7 @@ func TestNativeUI(t *testing.T) {
 		if err != nil || string(b) != string(setupBytes) {
 			return fmt.Errorf("Updater did not verify and download the expected installer")
 		}
-		if !externalSeen || !doiSeen || !arxivSeen {
+		if !externalSeen || !doiSeen || !arxivSeen || !pathCopied {
 			return fmt.Errorf("External-link bridge was not exercised")
 		}
 		result <- "ok"
@@ -115,6 +116,32 @@ func TestNativeUI(t *testing.T) {
 	var pickerDriver *exec.Cmd
 	windowTestHook = func(w webview.WebView) {
 		w.Bind("nativeTestStage", func(stage string) error {
+			if stage == "assert-path-copy" {
+				opened, _, _ := user32.NewProc("OpenClipboard").Call(0)
+				if opened == 0 {
+					return fmt.Errorf("Clipboard is locked")
+				}
+				defer user32.NewProc("CloseClipboard").Call()
+				handle, _, _ := user32.NewProc("GetClipboardData").Call(13)
+				if handle == 0 {
+					return fmt.Errorf("Unicode clipboard text missing")
+				}
+				ptr, _, _ := kernel32.NewProc("GlobalLock").Call(handle)
+				if ptr == 0 {
+					return fmt.Errorf("Clipboard buffer unavailable")
+				}
+				defer kernel32.NewProc("GlobalUnlock").Call(handle)
+				size, _, _ := kernel32.NewProc("GlobalSize").Call(handle)
+				if size == 0 || size > 65536 {
+					return fmt.Errorf("Unexpected clipboard size")
+				}
+				actual := syscall.UTF16ToString(unsafe.Slice((*uint16)(unsafe.Pointer(ptr)), int(size/2)))
+				if actual != reloadSample {
+					return fmt.Errorf("Copied path differs: %q != %q", actual, reloadSample)
+				}
+				pathCopied = true
+				return nil
+			}
 			if stage == "ready" {
 				t.Logf("Native viewer fully loaded: %s (CI host, not an Electron comparison)", time.Since(started))
 				return nil
@@ -238,7 +265,7 @@ func TestNativeUI(t *testing.T) {
 				if e != nil {
 					return e
 				}
-				sample := filepath.Join(t.TempDir(), "startup-test.pdf")
+				sample := filepath.Join(t.TempDir(), "연구 논문 📄.pdf")
 				reloadSample = sample
 				if e = os.WriteFile(sample, data, 0600); e != nil {
 					return e

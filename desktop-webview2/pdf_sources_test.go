@@ -44,3 +44,27 @@ func TestRefreshReadsRebuiltPDFAndProtectsSources(t *testing.T) {
 		t.Fatal("Relative source accepted")
 	}
 }
+
+func TestSourcePathOnlyResolvesAuthorizedPDFsEvenWhenMissing(t *testing.T) {
+	a := &app{token: "test"}
+	path := filepath.Join(t.TempDir(), "연구 논문 📄.pdf")
+	if err := os.WriteFile(path, []byte("%PDF-test"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	value, err := a.readPDFPath(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := value.(map[string]any)["sourceID"].(string)
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := a.pdfSourcePath(a.token, id); err != nil || got != path {
+		t.Fatalf("Source path: %q %v", got, err)
+	}
+	for _, pair := range [][2]string{{"wrong", id}, {a.token, path}, {a.token, "unknown"}, {a.token, ""}} {
+		if _, err := a.pdfSourcePath(pair[0], pair[1]); err == nil {
+			t.Fatal("Unauthorized source path resolved")
+		}
+	}
+}
