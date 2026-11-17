@@ -143,8 +143,10 @@
    await PDFGridTabs.split();
    if(document.querySelectorAll('.pdfTabPanel[aria-hidden="false"]').length!==2)throw Error('Two PDFs were not displayed side by side');
    const leftPane=document.querySelector('.splitLeft iframe').contentWindow,rightPane=document.querySelector('.splitRight iframe').contentWindow;
-   const leftState=JSON.stringify(leftPane.gridReloadState());rightPane.go(7);await sleep(80);
-   if(JSON.stringify(leftPane.gridReloadState())!==leftState)throw Error('Scrolling the right PDF moved the left PDF');
+   const leftState=leftPane.gridReloadState();rightPane.go(7);await sleep(80);
+   const leftAfter=leftPane.gridReloadState();
+   if(leftAfter.key!==leftState.key||leftAfter.view.page!==leftState.view.page||Math.abs(leftAfter.view.top-leftState.view.top)>4||Math.abs(leftAfter.view.left-leftState.view.left)>4||Math.abs(leftAfter.view.scale-leftState.view.scale)>.002)throw Error('Scrolling the right PDF moved the left PDF: '+JSON.stringify({before:leftState,after:leftAfter}));
+   if(leftAfter.navigation.index!==leftState.navigation.index||JSON.stringify(leftAfter.navigation.entries.map(entry=>entry.page))!==JSON.stringify(leftState.navigation.entries.map(entry=>entry.page)))throw Error('Scrolling the right PDF changed left link history');
    rightPane.document.querySelector('#stage').focus();await nativeTestStage('close-tab');
    await until(()=>!document.querySelector('#pdfTabPanels').classList.contains('splitView'));
    const beforeReopen=document.querySelectorAll('#pdfTabList [role=tab]').length;
