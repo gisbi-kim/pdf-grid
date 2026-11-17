@@ -43,14 +43,22 @@ func (a *app) readPDFPath(path string) (any, error) {
 }
 
 func (a *app) refreshPDF(token, id string) (any, error) {
+	path, err := a.pdfSourcePath(token, id)
+	if err != nil {
+		return nil, err
+	}
+	return a.readPDFPath(path)
+}
+
+func (a *app) pdfSourcePath(token, id string) (string, error) {
 	if token != a.token {
-		return nil, fmt.Errorf("Unauthorized")
+		return "", fmt.Errorf("Unauthorized")
 	}
 	a.mu.Lock()
 	path, ok := a.sources[id]
 	a.mu.Unlock()
 	if !ok {
-		return nil, fmt.Errorf("원본 PDF를 다시 열어 주세요.")
+		return "", fmt.Errorf("원본 PDF를 다시 열어 주세요.")
 	}
-	return a.readPDFPath(path)
+	return path, nil
 }

@@ -51,3 +51,11 @@
   .appRibbon .brand { margin-right:2px; }
   .appRibbon button, .appLinks a { padding:5px; font-size:11px; }
 }
+
+.tabContextMenu { position:fixed; z-index:1100; width:220px; max-width:calc(100vw - 16px); padding:5px; border:1px solid #49545f; border-radius:8px; background:#252c33; box-shadow:0 8px 24px #0006; }
+.tabContextMenu button { display:flex; align-items:center; gap:10px; width:100%; border:0; border-radius:5px; padding:9px 11px; background:transparent; color:#e5e9ed; font-size:13px; text-align:left; }
+.tabContextMenu button:hover:enabled,.tabContextMenu button:focus-visible { background:#374631; color:#d6f8ac; outline:0; }
+.tabContextMenu button:disabled { opacity:.5; cursor:default; }
+.tabContextMenu svg { width:15px; height:15px; flex-shrink:0; fill:none; stroke:currentColor; stroke-width:1.4; stroke-linejoin:round; }
+.tabMenuReason { margin:3px 10px 6px; font-size:11px; color:#9da8b3; line-height:1.6; }
+.tabMenuStatus { position:fixed; z-index:1101; left:50%; bottom:65px; transform:translateX(-50%); max-width:calc(100vw - 24px); padding:10px 15px; border:1px solid #607647; border-radius:8px; background:#252f28; color:#e5e9ed; box-shadow:0 5px 20px #0005; font-size:13px; pointer-events:none; }

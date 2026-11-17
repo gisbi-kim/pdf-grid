@@ -25,7 +25,7 @@ import (
 //go:embed web
 var assets embed.FS
 
-const version = "1.5.5"
+const version = "1.5.6"
 const identity = "pdf-grid-webview2-v1"
 const address = "127.0.0.1:49383"
 
@@ -146,6 +146,7 @@ const bridgeJS = `(function(){
  window.pdfGridDesktop=Object.freeze({
  saveResult:(name,bytes)=>new Promise((resolve,reject)=>{const id=crypto.randomUUID();saves.set(id,{resolve,reject});window.nativeSave(token,id,name,encode(bytes)).catch(error=>{saves.delete(id);reject(error)})}),
  copyPDFImage:bytes=>window.nativeCopy(token,encode(bytes)),
+ copyPDFPath:id=>task("nativeCopyPDFPath",id),
  openExternal:url=>window.nativeOpenExternal(token,url),
  checkForUpdates:()=>task("nativeCheckUpdates"),
  installUpdate:tag=>task("nativeInstallUpdate",tag),

@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const lib = window.PDFLib, core = window.PDFGridTools;
 let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab = 'merge', busy = false;
 const MAX_BYTES = 100 * 1024 * 1024;
-const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.5.5' : '../viewer/?v=1.5.5';
+const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.5.6' : '../viewer/?v=1.5.6';
 function addGridSteppers(view) {
   const frame = view.defaultView;
   const columns = view.getElementById('cols');
@@ -64,6 +64,7 @@ function compactGridViewer(frame) {
   }
   window.PDFGridReload.bind(view);
   bindTabShortcuts(view);
+  window.PDFGridTabMenu.bind(view);
   const group = view.createElement('div');
   group.className = 'group documentGroup';
   group.append(filename, open, file);
@@ -160,6 +161,7 @@ function createPdfTab() {
   tab.button.setAttribute('role', 'tab');
   tab.button.setAttribute('aria-controls', tab.panel.id);
   tab.button.onclick = () => activatePdfTab(tab, true);
+  window.PDFGridTabMenu.attach(tab);
   tab.reload.type = 'button';
   tab.reload.className = 'pdfTabReload';
   tab.reload.disabled = true;
@@ -167,6 +169,7 @@ function createPdfTab() {
   tab.reload.onclick = () => void window.PDFGridReload.refresh(tab);
   tab.close.textContent = '×';
   tab.close.onclick = () => {
+    window.PDFGridTabMenu.close();
     const index = pdfTabs.indexOf(tab);
     pdfTabs.splice(index, 1);
     $('pdfTabList').style.setProperty('--pdf-tab-count', pdfTabs.length);

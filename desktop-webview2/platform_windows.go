@@ -183,6 +183,22 @@ func runWindow(a *app, profile, url string) error {
 	if err := w.Bind("nativeRefreshPDF", a.refreshPDF); err != nil {
 		return err
 	}
+	if err := w.Bind("nativeCopyPDFPath", func(token, id, sourceID string) error {
+		if err := validTask(token, id); err != nil {
+			return err
+		}
+		path, err := a.pdfSourcePath(token, sourceID)
+		if err != nil {
+			return err
+		}
+		w.Dispatch(func() {
+			copied, err := copyUnicodeText(hwnd, path)
+			completeTask(id, copied, err)
+		})
+		return nil
+	}); err != nil {
+		return err
+	}
 	if err := w.Bind("nativePickPDFs", func(token, id string) error {
 		if err := validTask(token, id); err != nil {
 			return err
@@ -360,6 +376,42 @@ func copyPNG(hwnd uintptr, data []byte) (bool, error) {
 	user32.NewProc("EmptyClipboard").Call()
 	result, _, _ := user32.NewProc("SetClipboardData").Call(8, handle)
 	if result == 0 {
+		return false, fmt.Errorf("클립보드 복사 실패")
+	}
+	owned = false
+	return true, nil
+}
+
+func copyUnicodeText(hwnd uintptr, text string) (bool, error) {
+	value, err := syscall.UTF16FromString(text)
+	if err != nil || len(value) > 32768 {
+		return false, fmt.Errorf("복사할 경로가 올바르지 않습니다.")
+	}
+	handle, _, _ := kernel32.NewProc("GlobalAlloc").Call(0x42, uintptr(len(value)*2))
+	if handle == 0 {
+		return false, fmt.Errorf("클립보드 메모리 부족")
+	}
+	owned := true
+	defer func() {
+		if owned {
+			kernel32.NewProc("GlobalFree").Call(handle)
+		}
+	}()
+	ptr, _, _ := kernel32.NewProc("GlobalLock").Call(handle)
+	if ptr == 0 {
+		return false, fmt.Errorf("클립보드 메모리 오류")
+	}
+	copy(unsafe.Slice((*uint16)(unsafe.Pointer(ptr)), len(value)), value)
+	kernel32.NewProc("GlobalUnlock").Call(handle)
+	opened, _, _ := user32.NewProc("OpenClipboard").Call(hwnd)
+	if opened == 0 {
+		return false, fmt.Errorf("다른 앱이 클립보드를 사용 중입니다.")
+	}
+	defer user32.NewProc("CloseClipboard").Call()
+	if emptied, _, _ := user32.NewProc("EmptyClipboard").Call(); emptied == 0 {
+		return false, fmt.Errorf("클립보드를 비우지 못했습니다.")
+	}
+	if result, _, _ := user32.NewProc("SetClipboardData").Call(13, handle); result == 0 { // CF_UNICODETEXT; clipboard owns the NUL-terminated UTF-16 buffer.
 		return false, fmt.Errorf("클립보드 복사 실패")
 	}
 	owned = false
