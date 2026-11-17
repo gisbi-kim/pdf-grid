@@ -7,7 +7,7 @@ window.PDFGridSession=(()=>{
  function metadata(){
   if(loading||!window.pdfGridDesktop)return;
   const tabs=adapter.tabs().filter(tab=>tab.file&&tab.sessionStored).map(tab=>({id:tab.sessionID,name:tab.file.name,sourceID:tab.file.pdfGridSourceID||null,state:tab.frame.contentWindow.gridReloadState()}));
-  try{localStorage.setItem(KEY,JSON.stringify({version:1,tabs,active:adapter.active()?.sessionID}))}catch{warn()}
+  try{localStorage.setItem(KEY,JSON.stringify({version:1,tabs,active:adapter.active()?.sessionID,layout:adapter.layout?.()||null}))}catch{warn()}
  }
  function changed(){if(loading)return;clearTimeout(timer);timer=setTimeout(metadata,180)}
  async function keep(tab,file){
@@ -18,7 +18,7 @@ window.PDFGridSession=(()=>{
   pending.add(write);
   try{await write;tab.sessionStored=true;metadata()}catch{tab.sessionStored=!!file.pdfGridSourceID;metadata();warn()}finally{pending.delete(write)}
  }
- async function flush(){if(!window.pdfGridDesktop)return;clearTimeout(timer);await Promise.allSettled([...pending]);metadata()}
+ async function flush(){if(!window.pdfGridDesktop)return;clearTimeout(timer);await adapter?.settle?.();await Promise.allSettled([...pending]);metadata()}
  async function start(config){
   adapter=config;window.pdfGridSessionChanged=changed;
   if(!window.pdfGridDesktop){loading=false;return}
@@ -39,6 +39,7 @@ window.PDFGridSession=(()=>{
      if(meta.sourceID&&!fromDisk)tab.frame.contentWindow.notice('원본 파일을 읽지 못해 마지막으로 저장된 PDF를 복원했습니다.');
      if(fromDisk)await keep(tab,file);
     }
+    await adapter.restoreLayout?.(saved.layout,saved.tabs);
     const active=adapter.tabs().find(tab=>tab.sessionID===saved.active);if(active)adapter.activate(active);
    }
   }catch{warn()}finally{loading=false;metadata()}

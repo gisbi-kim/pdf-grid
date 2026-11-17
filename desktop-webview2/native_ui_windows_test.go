@@ -52,7 +52,7 @@ func TestNativeUI(t *testing.T) {
 	})
 	os.MkdirAll(profile, 0700)
 	a := &app{token: randomToken(), instanceToken: randomToken()}
-	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.5.6.exe")
+	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.6.0.exe")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,12 +146,20 @@ func TestNativeUI(t *testing.T) {
 				t.Logf("Native viewer fully loaded: %s (CI host, not an Electron comparison)", time.Since(started))
 				return nil
 			}
-			if stage == "close-tab" {
+			if stage == "close-tab" || stage == "reopen-tab" {
 				w.Dispatch(func() {
 					user32.NewProc("SetForegroundWindow").Call(uintptr(w.Window()))
 					user32.NewProc("keybd_event").Call(0x11, 0, 0, 0)
-					user32.NewProc("keybd_event").Call(0x57, 0, 0, 0)
-					user32.NewProc("keybd_event").Call(0x57, 0, 2, 0)
+					key := uintptr(0x57)
+					if stage == "reopen-tab" {
+						key = 0x54
+						user32.NewProc("keybd_event").Call(0x10, 0, 0, 0)
+					}
+					user32.NewProc("keybd_event").Call(key, 0, 0, 0)
+					user32.NewProc("keybd_event").Call(key, 0, 2, 0)
+					if stage == "reopen-tab" {
+						user32.NewProc("keybd_event").Call(0x10, 0, 2, 0)
+					}
 					user32.NewProc("keybd_event").Call(0x11, 0, 2, 0)
 				})
 				return nil

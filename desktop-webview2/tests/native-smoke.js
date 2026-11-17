@@ -125,14 +125,33 @@
      await nativeTestStage('assert-window');
     }
    }
+   let lastClosed;
    for(const focus of ['pdf','ribbon','search']){
     const active=document.querySelector('#pdfTabList [aria-selected="true"]'),before=document.querySelectorAll('#pdfTabList [role=tab]').length;
     const view=document.querySelector('.pdfTabPanel[aria-hidden="false"] iframe').contentDocument;
+    lastClosed={name:active.textContent,state:view.defaultView.gridReloadState(),index:[...document.querySelectorAll('#pdfTabList [role=tab]')].indexOf(active)};
     (focus==='ribbon'?document.querySelector('#devStatus'):view.querySelector(focus==='search'?'#searchInput':'#stage')).focus();
     await nativeTestStage('close-tab');
     await until(()=>document.querySelectorAll('#pdfTabList [role=tab]').length===before-1);
     if(active.isConnected||document.querySelectorAll('#pdfTabList [aria-selected="true"]').length!==1)throw Error('Ctrl+W did not close exactly the active PDF tab');
    }
+   document.querySelector('#devStatus').focus();await nativeTestStage('reopen-tab');
+   await until(()=>!document.querySelector('#reopenPDFTab').hasAttribute('aria-busy')&&document.querySelector('#pdfTabList [aria-selected="true"]')?.textContent===lastClosed.name);
+   const reopened=document.querySelector('.pdfTabPanel[data-active="true"] iframe').contentWindow,restoredView=reopened.gridReloadState();
+   if(Math.abs(restoredView.view.top-lastClosed.state.view.top)>4||Math.abs(restoredView.view.scale-lastClosed.state.view.scale)>.002||JSON.stringify(restoredView.navigation)!==JSON.stringify(lastClosed.state.navigation))throw Error('Ctrl+Shift+T did not restore the reading state');
+   if([...document.querySelectorAll('#pdfTabList [role=tab]')].findIndex(t=>t.textContent===lastClosed.name)!==lastClosed.index)throw Error('Closed tab order was not restored');
+   await PDFGridTabs.split();
+   if(document.querySelectorAll('.pdfTabPanel[aria-hidden="false"]').length!==2)throw Error('Two PDFs were not displayed side by side');
+   const leftPane=document.querySelector('.splitLeft iframe').contentWindow,rightPane=document.querySelector('.splitRight iframe').contentWindow;
+   const leftState=leftPane.gridReloadState();rightPane.go(7);await sleep(80);
+   const leftAfter=leftPane.gridReloadState();
+   if(leftAfter.key!==leftState.key||leftAfter.view.page!==leftState.view.page||Math.abs(leftAfter.view.top-leftState.view.top)>4||Math.abs(leftAfter.view.left-leftState.view.left)>4||Math.abs(leftAfter.view.scale-leftState.view.scale)>.002)throw Error('Scrolling the right PDF moved the left PDF: '+JSON.stringify({before:leftState,after:leftAfter}));
+   if(leftAfter.navigation.index!==leftState.navigation.index||JSON.stringify(leftAfter.navigation.entries.map(entry=>entry.page))!==JSON.stringify(leftState.navigation.entries.map(entry=>entry.page)))throw Error('Scrolling the right PDF changed left link history');
+   rightPane.document.querySelector('#stage').focus();await nativeTestStage('close-tab');
+   await until(()=>!document.querySelector('#pdfTabPanels').classList.contains('splitView'));
+   const beforeReopen=document.querySelectorAll('#pdfTabList [role=tab]').length;
+   document.querySelector('#devStatus').focus();await nativeTestStage('reopen-tab');
+   await until(()=>!document.querySelector('#reopenPDFTab').hasAttribute('aria-busy')&&document.querySelectorAll('#pdfTabList [role=tab]').length===beforeReopen+1);
    while(document.querySelectorAll('#pdfTabList [role=tab]').length>1)document.querySelector('.pdfTab:has([aria-selected="true"]) button[aria-label$=" 닫기"]').click();
    document.querySelector('.pdfTabPanel[aria-hidden="false"] iframe').contentDocument.querySelector('#stage').focus();
    await nativeTestStage('close-tab');
