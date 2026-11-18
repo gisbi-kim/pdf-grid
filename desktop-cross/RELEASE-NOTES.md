@@ -1,8 +1,8 @@
-PDF Grid 1.6.0 brings the offline PDF viewer, merger and splitter to macOS and Ubuntu.
+PDF Grid 1.6.1 opens a PDF launched from the file manager immediately. Saved background tabs keep their titles and reading positions and load on selection. Opening the app directly restores only the last visible tab or split pair first.
 
 - **Apple Silicon Mac** uses the `mac-arm64.dmg` file on macOS 13 or later.
 - **Intel Mac** uses the `mac-x64.dmg` file on macOS 13 or later.
-- **Ubuntu 24.04 LTS, x86-64** uses the `linux-amd64.deb` file. Run `sudo apt install ./PDF-Grid-1.6.0-linux-amd64.deb` from the download folder.
+- **Ubuntu 24.04 LTS, x86-64** uses the `linux-amd64.deb` file. Run `sudo apt install ./PDF-Grid-1.6.1-linux-amd64.deb` from the download folder.
 
 On Mac, open the disk image and drag PDF Grid to Applications. This build uses an ad hoc signature and has not been notarized by Apple. Check the downloaded file against `SHA256SUMS.txt`. If the first launch is blocked, see [Apple’s instructions for opening an app that hasn’t been notarized](https://support.apple.com/en-us/102445).
 

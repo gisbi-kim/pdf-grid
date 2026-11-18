@@ -3,8 +3,9 @@ window.PDFGridReload = (() => {
   let currentTab, isBusy;
   const refreshing = new WeakSet();
   async function refresh(tab = currentTab()) {
-    if (isBusy() || document.querySelector('#updateDialog[open]') || tab?.restoring || tab && refreshing.has(tab)) return;
+    if (isBusy() || document.querySelector('#updateDialog[open]') || tab?.restoring || tab?.loading || tab && refreshing.has(tab)) return;
     if (!tab?.hasFile) { location.reload(); return; }
+    if (tab.saved) return window.PDFGridSession.load(tab);
     refreshing.add(tab);
     const button = tab.reload;
     button.disabled = true;

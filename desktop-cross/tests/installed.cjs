@@ -20,8 +20,10 @@ async function main() {
 
   const paperA = path.join(directory, 'Paper A.pdf');
   const paperB = path.join(directory, '논문 B.pdf');
+  const freshPaper = path.join(directory, 'New PDF.pdf');
   await writeFile(paperA, await fixture(pdfLib, 20));
   await writeFile(paperB, await fixture(pdfLib, 17));
+  await writeFile(freshPaper, await fixture(pdfLib, 19));
   const mac = process.platform === 'darwin';
   const modifier = mac ? 'Meta' : 'Control';
   let application;
@@ -99,6 +101,23 @@ async function main() {
     await stage('논문 B.pdf');
     assert.equal(await page.locator('.pdfTabPanel[aria-hidden="false"]').count(), 2);
     console.log('Closed-tab restore, disk reload, and split workspace restart passed.');
+    await application.close();
+
+    await launch([freshPaper]);
+    await stage('New PDF.pdf');
+    assert.equal(await tab('New PDF.pdf').getAttribute('aria-selected'), 'true');
+    assert.deepEqual(await page.getByRole('tab').allTextContents(), ['Paper A.pdf', '논문 B.pdf', 'New PDF.pdf']);
+    assert.equal(await page.locator('.pdfTabPanel iframe').count(), 1);
+    await page.getByRole('button', { name: '논문 B.pdf 닫기', exact: true }).click();
+    assert.equal(await page.locator('.pdfTabPanel iframe').count(), 1);
+    await page.keyboard.press(modifier + '+Shift+t');
+    await stage('논문 B.pdf');
+    await page.locator('#reopenPDFTab:not([aria-busy])').waitFor();
+    assert.equal(await page.locator('.pdfTabPanel iframe').count(), 2);
+    await tab('Paper A.pdf').click();
+    await stage('Paper A.pdf');
+    assert.equal(await page.locator('.pdfTabPanel iframe').count(), 3);
+    console.log('Cold-start PDF loaded first; saved tabs created viewers only on demand.');
   } finally {
     await application?.close();
   }

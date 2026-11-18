@@ -28,7 +28,7 @@ func TestNativeUISessionRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, phase := range []string{"write-normal", "read-normal", "write-maximized", "read-maximized"} {
+	for _, phase := range []string{"write-normal", "read-normal", "write-maximized", "read-maximized", "read-new-pdf"} {
 		cmd := exec.Command(self, "-test.run=^TestNativeUISessionPhase$", "-test.v", "-test.timeout=40s")
 		cmd.Env = append(os.Environ(), "LOCALAPPDATA="+root, "PDFGRID_SESSION_PHASE="+phase)
 		output, err := cmd.CombinedOutput()
@@ -57,6 +57,9 @@ func TestNativeUISessionPhase(t *testing.T) {
 	}
 	a := &app{token: randomToken(), instanceToken: randomToken(), sourceFile: filepath.Join(profile, "pdf-sources.json")}
 	a.loadPDFSources()
+	if phase == "read-new-pdf" {
+		a.enqueue([]string{filepath.Join(profile, "Startup.pdf")})
+	}
 	listener, err := net.Listen("tcp4", address)
 	if err != nil {
 		t.Fatal(err)
@@ -78,7 +81,7 @@ func TestNativeUISessionPhase(t *testing.T) {
 			}
 		}
 		w.Bind("nativeSessionFixture", func(name, encoded string) (string, error) {
-			if name != "Session-A.pdf" && name != "Session-B.pdf" {
+			if name != "Session-A.pdf" && name != "Session-B.pdf" && name != "Startup.pdf" {
 				return "", fmt.Errorf("Invalid fixture")
 			}
 			data, err := base64.StdEncoding.DecodeString(encoded)
@@ -131,6 +134,8 @@ func TestNativeUISessionPhase(t *testing.T) {
           try{
             await PDFGridSession.ready;
             if(sessionTestPhase==='write-normal'){
+              const startupBytes=await createPDFGridFixture(PDFLib,14);
+              await nativeSessionFixture('Startup.pdf',btoa(String.fromCharCode(...startupBytes)));
               for(const [name,count] of [['Session-A.pdf',24],['Session-B.pdf',16]]){
                 const bytes=await createPDFGridFixture(PDFLib,count),id=await nativeSessionFixture(name,btoa(String.fromCharCode(...bytes))),source=await pdfGridDesktop.refreshPDF(id),file=new File([source.bytes],name,{type:'application/pdf'});file.pdfGridSourceID=id;await openPdfTabs([file]);
               }
@@ -140,11 +145,23 @@ func TestNativeUISessionPhase(t *testing.T) {
               await PDFGridTabs.split();const right=document.querySelector('.splitRight iframe').contentWindow;right.setGridViewportRows(2);right.go(7);await new Promise(r=>setTimeout(r,120));
               const expected={other:right.gridReloadState(),ratio:document.querySelector('#pdfSplitDivider').getAttribute('aria-valuenow'),names:[...document.querySelectorAll('#pdfTabList [role=tab]')].map(t=>t.textContent),active:'Session-A.pdf',state:frame.gridReloadState()};
               await PDFGridSession.flush();await nativeSessionFinish(JSON.stringify(expected));
+            }else if(sessionTestPhase==='read-new-pdf'){
+              const tabs=[...document.querySelectorAll('#pdfTabList [role=tab]')];
+              if(JSON.stringify(tabs.map(t=>t.textContent))!==JSON.stringify([...sessionTestExpected.names,'Startup.pdf']))throw Error('Startup lost saved tab names or order');
+              if(tabs[3].getAttribute('aria-selected')!=='true'||document.querySelectorAll('.pdfTabPanel iframe').length!==1)throw Error('Hidden tabs loaded before the requested startup PDF');
+              const startup=document.querySelector('.pdfTabPanel[data-active=true] iframe').contentWindow;
+              if(startup.document.querySelector('#page').max!=='14')throw Error('The startup PDF did not load');
+              tabs[2].click();
+              const generated=document.getElementById(tabs[2].getAttribute('aria-controls'));
+              await wait(()=>generated.querySelector('iframe')?.contentDocument.querySelector('#page')?.max==='12');
+              if(document.querySelectorAll('.pdfTabPanel iframe').length!==2)throw Error('Selecting a saved tab loaded other tabs');
+              await nativeSessionFinish('');
             }else{
               await wait(()=>document.querySelectorAll('#pdfTabList [role=tab]').length===3);
               const names=[...document.querySelectorAll('#pdfTabList [role=tab]')].map(t=>t.textContent);if(JSON.stringify(names)!==JSON.stringify(sessionTestExpected.names))throw Error('Restored tab order');
               if(document.querySelector('#pdfTabList [aria-selected=true]').textContent!==sessionTestExpected.active)throw Error('Restored active tab');
               if(document.querySelectorAll('.pdfTabPanel[aria-hidden=false]').length!==2||document.querySelector('#pdfSplitDivider').getAttribute('aria-valuenow')!==sessionTestExpected.ratio)throw Error('Split layout was not restored');
+              if(document.querySelectorAll('.pdfTabPanel iframe').length!==2)throw Error('Ordinary startup loaded a hidden PDF');
               const other=document.querySelector('.splitRight iframe').contentWindow;
               const frame=document.querySelector('.splitLeft iframe').contentWindow;
               await wait(()=>frame.document.querySelectorAll('.sheet').length===24);
