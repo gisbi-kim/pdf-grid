@@ -114,7 +114,11 @@ async function readSource(filename, sourceID) {
       if (!bytesRead) break;
       offset += bytesRead;
     }
-    return { name: path.basename(filename), bytes: bytes.subarray(0, offset), sourceID: sourceID || registerSource(filename) };
+    return {
+      name: path.basename(filename).normalize('NFC'),
+      bytes: bytes.subarray(0, offset),
+      sourceID: sourceID || registerSource(filename),
+    };
   } catch (error) {
     throw new Error(error.code ? 'PDF 파일을 읽지 못했습니다.' : error.message);
   } finally {

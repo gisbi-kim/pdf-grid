@@ -2,7 +2,7 @@
 
 const assert = require('node:assert/strict');
 const { execFile } = require('node:child_process');
-const { mkdtemp, writeFile } = require('node:fs/promises');
+const { mkdtemp, realpath, writeFile } = require('node:fs/promises');
 const { tmpdir } = require('node:os');
 const path = require('node:path');
 const { promisify } = require('node:util');
@@ -36,7 +36,13 @@ async function main() {
 
   const tab = name => page.getByRole('tab', { name, exact: true });
   async function stage(name) {
-    const panel = await tab(name).getAttribute('aria-controls');
+    let panel;
+    try {
+      panel = await tab(name).getAttribute('aria-controls');
+    } catch (error) {
+      console.error('Open PDF tabs:', await page.getByRole('tab').allTextContents());
+      throw error;
+    }
     const locator = page.frameLocator('#' + panel + ' iframe').locator('#stage.ready');
     await locator.waitFor();
     return locator;
@@ -67,7 +73,8 @@ async function main() {
     assert.equal(await page.getByRole('tab').count(), 2);
     await tab('논문 B.pdf').click({ button: 'right' });
     await page.getByRole('menuitem', { name: '절대경로 복사' }).click();
-    assert.equal(await application.evaluate(({ clipboard }) => clipboard.readText()), paperB);
+    const copied = await application.evaluate(({ clipboard }) => clipboard.readText());
+    assert.equal((await realpath(copied)).normalize('NFC'), (await realpath(paperB)).normalize('NFC'));
     console.log('Opened PDFs through startup and existing instance; native path clipboard passed.');
 
     await right.focus();
