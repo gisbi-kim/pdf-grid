@@ -114,10 +114,31 @@ async function main() {
     await stage('논문 B.pdf');
     await page.locator('#reopenPDFTab:not([aria-busy])').waitFor();
     assert.equal(await page.locator('.pdfTabPanel iframe').count(), 2);
+
+    // Pause a restored document after its viewer mounts to exercise Ctrl/Cmd+W
+    // while the loader still has a result in flight.
+    await page.evaluate(() => {
+      const saved = pdfTabs.find(tab => tab.name === 'Paper A.pdf');
+      const mount = saved.mount;
+      saved.mount = async () => {
+        await mount();
+        saved.frame.contentWindow.openFile = () => new Promise(resolve => {
+          window.finishDelayedPDF = () => resolve(true);
+        });
+      };
+    });
     await tab('Paper A.pdf').click();
+    await page.waitForFunction(() => typeof window.finishDelayedPDF === 'function');
+    await page.keyboard.press(modifier + '+w');
+    await tab('Paper A.pdf').waitFor({ state: 'detached' });
+    assert.equal(await page.locator('.pdfTabPanel iframe').count(), 2);
+    await page.evaluate(() => window.finishDelayedPDF());
+    await page.keyboard.press(modifier + '+Shift+t');
     await stage('Paper A.pdf');
+    await page.locator('#reopenPDFTab:not([aria-busy])').waitFor();
     assert.equal(await page.locator('.pdfTabPanel iframe').count(), 3);
-    console.log('Cold-start PDF loaded first; saved tabs created viewers only on demand.');
+    assert.equal(await tab('Paper A.pdf').count(), 1);
+    console.log('Cold-start priority, immediate close during restore, and reopening passed.');
   } finally {
     await application?.close();
   }

@@ -25,7 +25,7 @@ import (
 //go:embed web
 var assets embed.FS
 
-const version = "1.6.1"
+const version = "1.6.2"
 const identity = "pdf-grid-webview2-v1"
 const address = "127.0.0.1:49383"
 

@@ -152,6 +152,27 @@
    const beforeReopen=document.querySelectorAll('#pdfTabList [role=tab]').length;
    document.querySelector('#devStatus').focus();await nativeTestStage('reopen-tab');
    await until(()=>!document.querySelector('#reopenPDFTab').hasAttribute('aria-busy')&&document.querySelectorAll('#pdfTabList [role=tab]').length===beforeReopen+1);
+   const desktop=window.pdfGridDesktop;
+   // The preceding split test may have closed and reopened this document.
+   const sourceName=sourceTab.querySelector('[role=tab]').textContent;
+   const target=[...document.querySelectorAll('#pdfTabList [role=tab]')].find(tab=>tab.textContent===sourceName);
+   if(!target)throw Error('Refresh fixture is missing');
+   let releaseRefresh;
+   window.pdfGridDesktop={...desktop,refreshPDF:id=>new Promise(resolve=>{releaseRefresh=()=>resolve(desktop.refreshPDF(id))})};
+   try {
+    target.click();
+    if(target.getAttribute('aria-selected')!=='true')throw Error('Refresh fixture was not selected');
+    const refreshing=PDFGridReload.refresh();
+    await until(()=>!!releaseRefresh);
+    target.focus();
+    await nativeTestStage('close-tab');
+    await until(()=>!target.isConnected);
+    const remaining=()=>[...document.querySelectorAll('#pdfTabList [role=tab]')].map(tab=>[tab.id,tab.getAttribute('aria-selected')]);
+    const beforeLateResult=remaining();
+    releaseRefresh();
+    await refreshing;
+    if(target.isConnected||JSON.stringify(remaining())!==JSON.stringify(beforeLateResult))throw Error('A cancelled refresh changed the remaining tabs');
+   } finally {window.pdfGridDesktop=desktop}
    while(document.querySelectorAll('#pdfTabList [role=tab]').length>1)document.querySelector('.pdfTab:has([aria-selected="true"]) button[aria-label$=" 닫기"]').click();
    document.querySelector('.pdfTabPanel[aria-hidden="false"] iframe').contentDocument.querySelector('#stage').focus();
    await nativeTestStage('close-tab');

@@ -19,12 +19,17 @@ window.PDFGridSession=(()=>{
  }
  function changed(){if(loading)return;clearTimeout(timer);timer=setTimeout(metadata,180)}
  async function keep(tab,file){
-  if(!window.pdfGridDesktop)return;
+  if(!window.pdfGridDesktop || tab.removed)return;
   tab.sessionID??=crypto.randomUUID();tab.sessionStored=false;
   const record={id:tab.sessionID,file,name:file.name,handle:file.pdfGridHandle||null};
-  const write=(async()=>{try{await transaction('readwrite',store=>store.put(record))}catch(error){if(!record.handle)throw error;record.handle=null;await transaction('readwrite',store=>store.put(record))}})();
+  const write=(async()=>{try{await transaction('readwrite',store=>store.put(record))}catch(error){if(tab.removed)return;if(!record.handle)throw error;record.handle=null;await transaction('readwrite',store=>store.put(record))}})();
   pending.add(write);
-  try{await write;tab.sessionStored=true;metadata()}catch{tab.sessionStored=!!file.pdfGridSourceID;metadata();warn()}finally{pending.delete(write)}
+  try {
+   await write;
+   if (!tab.removed) { tab.sessionStored = true; metadata(); }
+  } catch {
+   if (!tab.removed) { tab.sessionStored = !!file.pdfGridSourceID; metadata(); warn(); }
+  } finally { pending.delete(write); }
  }
  async function flush(){if(!window.pdfGridDesktop)return;clearTimeout(timer);await adapter?.settle?.();await Promise.allSettled([...pending]);metadata()}
  // Startup reads only small session metadata. Inactive tabs keep their records
@@ -51,9 +56,12 @@ window.PDFGridSession=(()=>{
   }
  }
  async function materialize(tab, meta) {
+  if (tab.removed) return false;
   const viewer = tab.frame.contentWindow;
   async function openPDF(file) {
-   if (!await viewer.openFile(file, meta.state, false)) return false;
+   if (tab.removed) return false;
+   const opened = await viewer.openFile(file, meta.state, false);
+   if (!opened || tab.removed) return false;
    tab.file = file;
    tab.saved = null;
    tab.sessionStored = true;
@@ -70,8 +78,10 @@ window.PDFGridSession=(()=>{
     if (await openPDF(file)) { await keep(tab, file); return true; }
    } catch {}
   }
+  if (tab.removed) return false;
   let record;
   try { record = await transaction('readonly', store => store.get(meta.id)); } catch {}
+  if (tab.removed) return false;
   if (record?.handle) {
    try {
     const file = await record.handle.getFile();
@@ -79,7 +89,7 @@ window.PDFGridSession=(()=>{
     if (await openPDF(file)) { await keep(tab, file); return true; }
    } catch {}
   }
-  if (record?.file) {
+  if (!tab.removed && record?.file) {
    const file = new File([record.file], record.name, {type:'application/pdf'});
    file.pdfGridSourceID = meta.sourceID;
    if (await openPDF(file)) {
@@ -87,22 +97,26 @@ window.PDFGridSession=(()=>{
     return true;
    }
   }
-  viewer.notice('이전 PDF를 불러오지 못했습니다. 탭을 다시 누르거나 원본을 열어 주세요.');
+  if (!tab.removed) viewer.notice('이전 PDF를 불러오지 못했습니다. 탭을 다시 누르거나 원본을 열어 주세요.');
   return false;
  }
  function load(tab) {
+  if (tab.removed) return tab.closed;
   if (tab.loading) return tab.loading;
   if (!tab.saved) return tab.mount();
-  tab.close.disabled = tab.reload.disabled = true;
+  tab.reload.disabled = true;
   tab.reload.setAttribute('aria-busy', 'true');
-  tab.loading = tab.mount().then(() => materialize(tab, tab.saved)).catch(() => {
-   tab.frame.contentWindow?.notice?.('이전 PDF를 불러오지 못했습니다.');
+  const opening = tab.mount().then(() => materialize(tab, tab.saved)).catch(() => {
+   if (!tab.removed) tab.frame.contentWindow?.notice?.('이전 PDF를 불러오지 못했습니다.');
    return false;
-  }).finally(() => {
+  });
+  tab.loading = Promise.race([opening,tab.closed]).finally(() => {
    tab.loading = null;
-   tab.close.disabled = tab.reload.disabled = false;
-   tab.reload.removeAttribute('aria-busy');
-   changed();
+   if (!tab.removed) {
+    tab.reload.disabled = false;
+    tab.reload.removeAttribute('aria-busy');
+    changed();
+   }
   });
   return tab.loading;
  }

@@ -65,17 +65,18 @@ PDF 파일은 브라우저 안에서 처리되며 서버로 업로드되지 않�
 | [1.6.0](https://github.com/gisbi-kim/pdf-grid/releases/tag/desktop-v1.6.0-build.57) | 닫은 탭 복원(Ctrl+Shift+T), 두 PDF 좌우 보기와 폭 조절, 분할 상태 재시작 복원 | 닫은 탭 이력은 실행 중 최근 20개만 기억. 웹은 ↶/메뉴로 복원하며 브라우저 예약 단축키는 유지 |
 | [1.6.0 macOS·Ubuntu](https://github.com/gisbi-kim/pdf-grid/releases/tag/desktop-cross-v1.6.0) | 공통 PDF 화면과 작업 복원 기능을 오프라인 설치 앱으로 제공 | Mac Apple Silicon·Intel, Ubuntu 24.04 x86-64. Mac은 ⌘+W, ⌘+Shift+T, ⌘+R 지원 |
 | 1.6.1 | 새 PDF로 실행할 때 그 파일을 먼저 표시하고 이전 탭은 필요할 때 로드 | 일반 실행 시 마지막으로 보던 탭 또는 나란히 보던 두 탭만 먼저 복원 |
+| 1.6.2 | PDF 로딩, 새로고침 또는 복원 중에도 탭 즉시 닫기 | 설치 앱의 Ctrl+W, Mac의 ⌘+W, 탭의 × 버튼에 적용 |
 
 ## 설치
 
 | 운영체제 | 다운로드 | 설치 방법 |
 | --- | --- | --- |
 | Windows 10/11 x64 | [설치 EXE](https://github.com/gisbi-kim/pdf-grid/releases/latest/download/PDF-Grid-Setup.exe) | 설치 프로그램을 실행합니다. |
-| macOS 13 이상, Apple Silicon (M 시리즈) | [Apple Silicon DMG](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.1/PDF-Grid-1.6.1-mac-arm64.dmg) | DMG를 열고 PDF Grid를 응용 프로그램 폴더에 넣습니다. |
-| macOS 13 이상, Intel | [Intel DMG](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.1/PDF-Grid-1.6.1-mac-x64.dmg) | DMG를 열고 PDF Grid를 응용 프로그램 폴더에 넣습니다. |
-| Ubuntu 24.04 LTS, x86-64 | [DEB](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.1/PDF-Grid-1.6.1-linux-amd64.deb) | 다운로드 폴더에서 `sudo apt install ./PDF-Grid-1.6.1-linux-amd64.deb`를 실행합니다. |
+| macOS 13 이상, Apple Silicon (M 시리즈) | [Apple Silicon DMG](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.2/PDF-Grid-1.6.2-mac-arm64.dmg) | DMG를 열고 PDF Grid를 응용 프로그램 폴더에 넣습니다. |
+| macOS 13 이상, Intel | [Intel DMG](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.2/PDF-Grid-1.6.2-mac-x64.dmg) | DMG를 열고 PDF Grid를 응용 프로그램 폴더에 넣습니다. |
+| Ubuntu 24.04 LTS, x86-64 | [DEB](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.2/PDF-Grid-1.6.2-linux-amd64.deb) | 다운로드 폴더에서 `sudo apt install ./PDF-Grid-1.6.2-linux-amd64.deb`를 실행합니다. |
 
-Mac 배포판은 Apple 공증을 받지 않았습니다. 다운로드 출처와 [SHA-256 해시](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.1/SHA256SUMS.txt)를 확인한 뒤, 첫 실행이 차단되면 Apple의 [‘그래도 열기’ 안내](https://support.apple.com/en-us/102445)를 따르세요. macOS·Ubuntu의 소스 빌드와 검증 절차는 [설치판 개발 안내](desktop-cross/README.md)에 있습니다.
+Mac 배포판은 Apple 공증을 받지 않았습니다. 다운로드 출처와 [SHA-256 해시](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.2/SHA256SUMS.txt)를 확인한 뒤, 첫 실행이 차단되면 Apple의 [‘그래도 열기’ 안내](https://support.apple.com/en-us/102445)를 따르세요. macOS·Ubuntu의 소스 빌드와 검증 절차는 [설치판 개발 안내](desktop-cross/README.md)에 있습니다.
 
 ### Windows 앱
 
