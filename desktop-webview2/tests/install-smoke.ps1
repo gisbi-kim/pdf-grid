@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 Add-Type @'
 using System;
 using System.Text;
@@ -79,12 +79,12 @@ $before=(Get-FileHash "$target/PDF-Grid.exe").Hash
 Set-ItemProperty $key DisplayVersion '1.3.3'
 Move-Item "$target/Uninstall.exe" "$target/Uninstall PDF Grid.exe"
 $p=Start-Process $setup -PassThru
-Answer $p 7 '경량 버전 1.6.1으로 교체'
+Answer $p 7 '경량 버전 1.6.1로 교체'
 if(!$p.WaitForExit(30000)){throw 'Cancelled upgrade did not exit'}
 if((Get-FileHash "$target/PDF-Grid.exe").Hash -ne $before){throw 'No changed existing app'}
 if((Get-ItemProperty $key).DisplayVersion -ne '1.3.3'){throw 'No changed version'}
 $p=Start-Process $setup -PassThru
-Answer $p 6 '경량 버전 1.6.1으로 교체'
+Answer $p 6 '경량 버전 1.6.1로 교체'
 ChooseMode $p $false
 Answer $p 7 '설치가 완료'
 if(!$p.WaitForExit(60000) -or $p.ExitCode -ne 0){throw 'Upgrade failed'}
@@ -127,7 +127,7 @@ $rootHash=(Get-FileHash "$target/keep-original.pdf").Hash
 $nestedHash=(Get-FileHash "$target/resources/keep-original.pdf").Hash
 $profileHash=(Get-FileHash "$profile/force-test-session.json").Hash
 $p=Start-Process $setup -PassThru
-Answer $p 6 '경량 버전 1.6.1으로 교체'
+Answer $p 6 '경량 버전 1.6.1로 교체'
 ChooseMode $p $true
 Answer $p 7 '설치가 완료'
 if(!$p.WaitForExit(30000) -or $p.ExitCode -ne 0){throw 'Force replacement failed'}

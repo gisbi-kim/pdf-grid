@@ -1,4 +1,4 @@
-Unicode true
+﻿Unicode true
 !include "LogicLib.nsh"
 !include "x64.nsh"
 !include "FileFunc.nsh"
@@ -89,7 +89,7 @@ Function .onInit
   ${If} $OldVersion == "1.6.1"
    MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "PDF Grid $OldVersion 버전이 이미 설치되어 있습니다.$\r$\n$\r$\n기존 프로그램을 제거하고 1.6.1 버전을 다시 설치할까요?$\r$\nPDF 원본과 기존 사용자 데이터 폴더는 삭제하지 않습니다.$\r$\n작업 중인 결과를 저장하고 PDF Grid 창을 닫은 뒤 진행해 주세요." IDYES confirmed
   ${Else}
-   MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "PDF Grid $OldVersion 버전이 설치되어 있습니다.$\r$\n$\r$\n기존 프로그램을 제거하고 경량 버전 1.6.1으로 교체할까요?$\r$\nPDF 원본과 기존 사용자 데이터 폴더는 삭제하지 않습니다.$\r$\n작업 중인 결과를 저장하고 PDF Grid 창을 닫은 뒤 진행해 주세요." IDYES confirmed
+   MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "PDF Grid $OldVersion 버전이 설치되어 있습니다.$\r$\n$\r$\n기존 프로그램을 제거하고 경량 버전 1.6.1로 교체할까요?$\r$\nPDF 원본과 기존 사용자 데이터 폴더는 삭제하지 않습니다.$\r$\n작업 중인 결과를 저장하고 PDF Grid 창을 닫은 뒤 진행해 주세요." IDYES confirmed
   ${EndIf}
   Abort
  confirmed:
