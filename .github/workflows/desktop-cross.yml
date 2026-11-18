@@ -46,6 +46,8 @@ jobs:
       - name: Build installer
         working-directory: desktop-cross
         env:
+          # Use the package's ad hoc identity even on PR builds. No credentials are used.
+          CSC_FOR_PULL_REQUEST: 'true'
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           PACKAGE_TARGET: ${{ matrix.target }}
         run: |
