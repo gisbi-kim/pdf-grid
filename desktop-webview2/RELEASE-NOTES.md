@@ -1,4 +1,6 @@
-PDF Grid 1.6.0 for Windows 10/11 x64
+PDF Grid 1.6.1 for Windows 10/11 x64
+
+- Open a PDF passed to the app before reading old tabs. Saved background tabs display their titles and restore their reading position on selection. Starting the app directly loads only the last visible tab or split pair.
 
 - Restore the last 20 closed PDF tabs with Ctrl+Shift+T, the ↶ icon or tab menu, including original order, reading view and link history. Source files reread when available and cached closed snapshots recover missing/invalid sources. Closed history lasts for the current app/page session only.
 - Compare two PDFs side by side with independent scroll/zoom, document headings and an adjustable divider. Pane interaction selects the active PDF for shortcuts; selecting another tab replaces that pane. The native app restores the split pair, ratio and both reading views on restart. Web toolbar/menu controls support both features; reserved browser shortcuts stay unchanged.

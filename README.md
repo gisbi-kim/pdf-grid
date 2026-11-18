@@ -62,19 +62,20 @@ PDF 파일은 브라우저 안에서 처리되며 서버로 업로드되지 않�
 | [1.5.4](https://github.com/gisbi-kim/pdf-grid/releases/tag/desktop-v1.5.4-build.44) | 별도 새로고침 버튼을 각 탭 왼쪽의 작은 아이콘으로 이동 | 선택하지 않은 탭도 개별 갱신. 웹은 파일 핸들이 있으면 원본을 다시 읽고, 없으면 보관 중인 PDF를 다시 표시 |
 | [1.5.5](https://github.com/gisbi-kim/pdf-grid/releases/tag/desktop-v1.5.5-build.46) | 설치 앱 Ctrl+W로 현재 PDF 탭 닫기 | 마지막 탭은 빈 탭으로 교체. 웹의 Ctrl+W는 브라우저 탭 닫기를 유지 |
 | [1.5.6](https://github.com/gisbi-kim/pdf-grid/releases/tag/desktop-v1.5.6-build.48) | 탭 이름 우클릭 메뉴와 절대경로 복사 | 설치 앱에서 원본 경로가 확인되는 PDF에 제공. 웹·경로 없는 생성 PDF에서는 비활성화 및 이유 안내 |
-| 1.6.0 | 닫은 탭 복원(Ctrl+Shift+T), 두 PDF 좌우 보기와 폭 조절, 분할 상태 재시작 복원 | 닫은 탭 이력은 실행 중 최근 20개만 메모리에 보관. 웹은 ↶/메뉴로 복원하며 브라우저 예약 단축키는 유지 |
+| [1.6.0](https://github.com/gisbi-kim/pdf-grid/releases/tag/desktop-v1.6.0-build.57) | 닫은 탭 복원(Ctrl+Shift+T), 두 PDF 좌우 보기와 폭 조절, 분할 상태 재시작 복원 | 닫은 탭 이력은 실행 중 최근 20개만 기억. 웹은 ↶/메뉴로 복원하며 브라우저 예약 단축키는 유지 |
 | [1.6.0 macOS·Ubuntu](https://github.com/gisbi-kim/pdf-grid/releases/tag/desktop-cross-v1.6.0) | 공통 PDF 화면과 작업 복원 기능을 오프라인 설치 앱으로 제공 | Mac Apple Silicon·Intel, Ubuntu 24.04 x86-64. Mac은 ⌘+W, ⌘+Shift+T, ⌘+R 지원 |
+| 1.6.1 | 새 PDF로 실행할 때 그 파일을 먼저 표시하고 이전 탭은 필요할 때 로드 | 일반 실행 시 마지막으로 보던 탭 또는 나란히 보던 두 탭만 먼저 복원 |
 
 ## 설치
 
 | 운영체제 | 다운로드 | 설치 방법 |
 | --- | --- | --- |
 | Windows 10/11 x64 | [설치 EXE](https://github.com/gisbi-kim/pdf-grid/releases/latest/download/PDF-Grid-Setup.exe) | 설치 프로그램을 실행합니다. |
-| macOS 13 이상, Apple Silicon (M 시리즈) | [Apple Silicon DMG](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.0/PDF-Grid-1.6.0-mac-arm64.dmg) | DMG를 열고 PDF Grid를 응용 프로그램 폴더에 넣습니다. |
-| macOS 13 이상, Intel | [Intel DMG](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.0/PDF-Grid-1.6.0-mac-x64.dmg) | DMG를 열고 PDF Grid를 응용 프로그램 폴더에 넣습니다. |
-| Ubuntu 24.04 LTS, x86-64 | [DEB](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.0/PDF-Grid-1.6.0-linux-amd64.deb) | 다운로드 폴더에서 `sudo apt install ./PDF-Grid-1.6.0-linux-amd64.deb`를 실행합니다. |
+| macOS 13 이상, Apple Silicon (M 시리즈) | [Apple Silicon DMG](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.1/PDF-Grid-1.6.1-mac-arm64.dmg) | DMG를 열고 PDF Grid를 응용 프로그램 폴더에 넣습니다. |
+| macOS 13 이상, Intel | [Intel DMG](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.1/PDF-Grid-1.6.1-mac-x64.dmg) | DMG를 열고 PDF Grid를 응용 프로그램 폴더에 넣습니다. |
+| Ubuntu 24.04 LTS, x86-64 | [DEB](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.1/PDF-Grid-1.6.1-linux-amd64.deb) | 다운로드 폴더에서 `sudo apt install ./PDF-Grid-1.6.1-linux-amd64.deb`를 실행합니다. |
 
-Mac 배포판은 Apple 공증을 받지 않았습니다. 다운로드 출처와 [SHA-256 해시](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.0/SHA256SUMS.txt)를 확인한 뒤, 첫 실행이 차단되면 Apple의 [‘그래도 열기’ 안내](https://support.apple.com/en-us/102445)를 따르세요. macOS·Ubuntu의 소스 빌드와 검증 절차는 [설치판 개발 안내](desktop-cross/README.md)에 있습니다.
+Mac 배포판은 Apple 공증을 받지 않았습니다. 다운로드 출처와 [SHA-256 해시](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.1/SHA256SUMS.txt)를 확인한 뒤, 첫 실행이 차단되면 Apple의 [‘그래도 열기’ 안내](https://support.apple.com/en-us/102445)를 따르세요. macOS·Ubuntu의 소스 빌드와 검증 절차는 [설치판 개발 안내](desktop-cross/README.md)에 있습니다.
 
 ### Windows 앱
 
@@ -88,7 +89,7 @@ Windows 10/11 x64에서 별도 앱 창으로 실행합니다. 공유 WebView2 Ru
 
 Windows판의 창 배치는 `%LOCALAPPDATA%\PDFGridWebView\window-placement.json`, 다시 읽을 PDF 원본 경로 연결은 같은 폴더의 `pdf-sources.json`에 저장됩니다. macOS·Ubuntu판은 각 Electron 사용자 프로필에 창 배치와 원본 경로 연결을 저장합니다. 탭의 PDF 사본은 앱 프로필의 IndexedDB에, 탭 순서·선택·격자·확대율·스크롤·이동 이력은 로컬 저장소에 저장됩니다. 정상 종료 전에 저장을 마친 다음 창을 닫습니다. 설치 앱 업데이트는 이 프로필을 지우지 않습니다. 창 위치는 운영체제의 창 관리자 정책을 따릅니다.
 
-원본이 있으면 재실행 시 디스크에서 새로 읽고, 없거나 아직 유효한 PDF가 아니면 저장된 PDF 사본으로 복원하면서 안내합니다. 탭을 닫으면 해당 탭의 PDF 캐시를 제거합니다. 비밀번호는 저장하지 않습니다. **1.4.x에는 여러 탭 저장 기능이 없으므로 1.5.0으로 처음 업데이트한 뒤 PDF를 한 번 다시 열어 두면 이후부터 복원됩니다.** 저장 공간 부족·사이트 데이터/프로필 삭제는 복원을 제한할 수 있습니다.
+PDF 파일로 앱을 실행하면 새 파일을 먼저 표시하고 이전 탭은 제목과 보기 정보만 복원합니다. 앱을 직접 실행하면 마지막으로 보던 탭 또는 나란히 보던 두 탭을 먼저 엽니다. 나머지 탭은 선택할 때 디스크에서 원본을 읽고, 원본이 없거나 유효하지 않으면 저장된 PDF 사본을 엽니다. 아직 읽지 않은 저장 탭을 닫으면 이번 실행에서 닫은 탭 복원에 필요한 사본만 보관합니다. 비밀번호는 저장하지 않습니다. **1.4.x에는 여러 탭 저장 기능이 없으므로 1.5.0으로 처음 업데이트한 뒤 PDF를 한 번 다시 열어 두면 이후부터 복원됩니다.** 저장 공간 부족·사이트 데이터/프로필 삭제는 복원을 제한할 수 있습니다.
 
 인용 카드는 PDF 안의 인용 목적지와 참고문헌 텍스트에서 추출합니다. 밝은 카드에 제목·저자·출처를 구분하고, 함께 인용된 항목은 상단 번호/화살표로 넘깁니다. 원문은 펼쳐 볼 수 있고 “참조에서 보기”는 선택한 참고문헌 위치로 이동합니다. 텍스트나 해당 항목의 PDF 링크에 DOI·arXiv 식별자가 있으면 논문 페이지 버튼이 나타납니다. 웹에서는 새 탭, 설치판에서는 기본 브라우저로 열며, 버튼을 누르기 전에는 외부 페이지를 요청하지 않습니다. 논문 초록·인용 수 등 PDF에 없는 정보는 만들어 표시하지 않습니다. PDF나 논문 제목을 외부 검색/API로 전송하지 않습니다. 스캔 PDF, 인용 목적지 없는 PDF, 텍스트 배치가 특이한 문서는 카드를 표시하지 않거나 추출 제한이 있을 수 있습니다. 카드가 보여도 링크 클릭은 기존 참고문헌 위치로 이동하며, 호버 자체는 읽기 위치와 이동 이력을 바꾸지 않습니다.
 

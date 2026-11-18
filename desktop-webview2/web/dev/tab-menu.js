@@ -13,7 +13,9 @@ window.PDFGridTabMenu = (() => {
   status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
   document.body.append(menu, status);
   let target = null, statusTimer;
-  function sourceID(tab) { return (tab.file || tab.frame.contentWindow.gridReloadFile?.())?.pdfGridSourceID; }
+  function sourceID(tab) {
+    return tab.saved?.sourceID || (tab.file || tab.frame.contentWindow?.gridReloadFile?.())?.pdfGridSourceID;
+  }
   function close(restoreFocus = false) {
     const previous = target; target = null; menu.hidden = true;
     previous?.button.setAttribute('aria-expanded', 'false');

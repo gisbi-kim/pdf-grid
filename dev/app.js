@@ -5,7 +5,7 @@ let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab 
 const MAX_BYTES = 100 * 1024 * 1024;
 const macDesktop = window.pdfGridDesktop?.platform === 'darwin';
 const tabShortcutLabel = macDesktop ? '⌘' : 'Ctrl+';
-const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.6.0' : '../viewer/?v=1.6.0';
+const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.6.1' : '../viewer/?v=1.6.1';
 function addGridSteppers(view) {
   const frame = view.defaultView;
   const columns = view.getElementById('cols');
@@ -144,8 +144,12 @@ function bindTabShortcuts(view) {
 }
 bindTabShortcuts(document);
 
-function pdfFile(tab) { return tab?.file || tab?.frame.contentWindow.gridReloadFile?.(); }
-function readablePdfTabs() { return pdfTabs.filter(tab => tab.hasFile && pdfFile(tab)); }
+function pdfFile(tab) { return tab?.file || tab?.frame.contentWindow?.gridReloadFile?.(); }
+function hasPdfDocument(tab) { return !!(tab?.saved || pdfFile(tab)); }
+function readablePdfTabs() { return pdfTabs.filter(hasPdfDocument); }
+function showPdfTab(tab) {
+  return tab ? window.PDFGridSession.load(tab) : Promise.resolve();
+}
 function workspaceControls() {
   $('reopenPDFTab').disabled = reopeningPdf || !closedPdfTabs.length;
   if(reopeningPdf)$('reopenPDFTab').setAttribute('aria-busy','true');else $('reopenPDFTab').removeAttribute('aria-busy');
@@ -172,7 +176,7 @@ function renderPdfTabs() {
   workspaceControls();
 }
 function capturePdfViews() {
-  return new Map(readablePdfTabs().map(tab => [tab,tab.frame.contentWindow.gridReloadState().view]));
+  return new Map(pdfTabs.filter(tab => !tab.saved && pdfFile(tab)).map(tab => [tab,tab.frame.contentWindow.gridReloadState().view]));
 }
 function relayoutPdfPanels(change, views = capturePdfViews()) {
   const generation = ++layoutGeneration;
@@ -192,14 +196,16 @@ function activatePdfTab(tab, focus = false) {
   } else { activePdfTab = tab; renderPdfTabs(); }
   if (focus) tab.button.focus();
   window.PDFGridSession.changed();
+  return showPdfTab(tab);
 }
-function canSplitPdf(tab) { return !!tab?.hasFile && !!pdfFile(tab) && readablePdfTabs().length >= 2; }
+function canSplitPdf(tab) { return hasPdfDocument(tab) && readablePdfTabs().length >= 2; }
 async function openSplitPdf(tab = activePdfTab) {
   if (busy || readablePdfTabs().length < 2) return;
   if (!canSplitPdf(tab)) tab = readablePdfTabs()[0];
-  const left = activePdfTab?.hasFile && pdfFile(activePdfTab) ? activePdfTab : readablePdfTabs()[0];
+  const left = hasPdfDocument(activePdfTab) ? activePdfTab : readablePdfTabs()[0];
   const right = tab !== left ? tab : readablePdfTabs().find(other => other !== left);
   await relayoutPdfPanels(() => { splitPdfTabs = [left,right]; activePdfTab = left; });
+  await Promise.all([showPdfTab(left), showPdfTab(right)]);
 }
 async function closeSplitPdf() {
   if (splitPdfTabs) await relayoutPdfPanels(() => { splitPdfTabs = null; });
@@ -207,20 +213,25 @@ async function closeSplitPdf() {
 function closePdfTab(tab, remember = true) {
   if (!pdfTabs.includes(tab) || tab.close.disabled) return;
   window.PDFGridTabMenu.close();
-  if (remember && tab.hasFile && pdfFile(tab)) {
-    closedPdfTabs.push({file:pdfFile(tab),state:tab.frame.contentWindow.gridReloadState(),index:pdfTabs.indexOf(tab),width:tab.frame.clientWidth});
-    if (closedPdfTabs.length > 20) closedPdfTabs.shift();
+  const previousActive = activePdfTab;
+  const preserveSnapshot = remember && !!tab.saved;
+  if (remember && hasPdfDocument(tab)) {
+    const index = pdfTabs.indexOf(tab);
+    closedPdfTabs.push(tab.saved ? {saved:tab.saved,index} :
+      {file:pdfFile(tab),state:tab.frame.contentWindow.gridReloadState(),index,width:tab.frame.clientWidth});
+    if (closedPdfTabs.length > 20) window.PDFGridSession.drop(closedPdfTabs.shift().saved?.id);
   }
   const views = capturePdfViews(), resizing = !!splitPdfTabs?.includes(tab);
   const remove = () => {
     const index = pdfTabs.indexOf(tab), remaining = splitPdfTabs?.find(other => other !== tab);
-    pdfTabs.splice(index,1); tab.item.remove(); tab.panel.remove();
+    pdfTabs.splice(index,1); tab.item.remove(); tab.panel.remove(); tab.resolveMount?.();
     $('pdfTabList').style.setProperty('--pdf-tab-count',pdfTabs.length);
     if (resizing) splitPdfTabs = null;
     if (activePdfTab === tab) activePdfTab = resizing ? remaining : pdfTabs[index] || pdfTabs[index-1] || createPdfTab();
-    window.PDFGridSession.drop(tab);
+    if (!preserveSnapshot) window.PDFGridSession.drop(tab.sessionID);
   };
   if (resizing) void relayoutPdfPanels(remove, views); else { remove(); renderPdfTabs(); }
+  if (activePdfTab !== previousActive) void showPdfTab(activePdfTab);
   activePdfTab?.button.focus(); window.PDFGridSession.changed();
 }
 async function reopenClosedPdfTab() {
@@ -231,11 +242,21 @@ async function reopenClosedPdfTab() {
   let tab;
   try {
     setTab('viewer');
-    tab = activePdfTab?.hasFile ? createPdfTab() : activePdfTab || createPdfTab();
-    tab.restoring=true;tab.close.disabled=true;tab.reload.disabled=true;tab.reload.setAttribute('aria-busy','true');
+    tab = record.saved ? createPdfTab(record.saved) :
+      activePdfTab?.hasFile ? createPdfTab() : activePdfTab || createPdfTab();
+    if (!record.saved) {
+      tab.restoring=true;tab.close.disabled=true;tab.reload.disabled=true;tab.reload.setAttribute('aria-busy','true');
+    } else if (activePdfTab && !activePdfTab.hasFile && !splitPdfTabs) {
+      closePdfTab(activePdfTab, false);
+    }
     const previous = pdfTabs.indexOf(tab); pdfTabs.splice(previous,1); pdfTabs.splice(Math.min(record.index,pdfTabs.length),0,tab);
     for (const item of pdfTabs) $('pdfTabList').append(item.item);
-    activatePdfTab(tab); await tab.ready;
+    await activatePdfTab(tab);
+    if (record.saved) {
+      const closedIndex = closedPdfTabs.indexOf(record);
+      if (closedIndex >= 0) closedPdfTabs.splice(closedIndex, 1);
+      return;
+    }
     let file = record.file, fallback = false;
     try {
       if (file.pdfGridSourceID && window.pdfGridDesktop) {
@@ -253,7 +274,7 @@ async function reopenClosedPdfTab() {
     const closedIndex=closedPdfTabs.indexOf(record);if(closedIndex>=0)closedPdfTabs.splice(closedIndex,1); renderPdfTabs();
     tab.frame.contentDocument.getElementById('stage').focus({preventScroll:true});
     if(fallback)tab.frame.contentWindow.notice('원본을 읽지 못해 닫을 때의 PDF를 복원했습니다.');
-  } catch (error) { if (tab) {tab.close.disabled=false;closePdfTab(tab,false)} activePdfTab?.frame.contentWindow.notice(error.message || '닫은 탭을 복원하지 못했습니다.'); }
+  } catch (error) { if (tab) {tab.close.disabled=false;closePdfTab(tab,false)} activePdfTab?.frame.contentWindow?.notice?.(error.message || '닫은 탭을 복원하지 못했습니다.'); }
   finally { if(tab){tab.restoring=false;tab.close.disabled=false;tab.reload.disabled=!tab.hasFile;tab.reload.removeAttribute('aria-busy')} reopeningPdf = false; workspaceControls(); }
 }
 window.PDFGridTabs = {reopen:reopenClosedPdfTab,canReopen:()=>!!closedPdfTabs.length&&!reopeningPdf,split:openSplitPdf,canSplit:canSplitPdf,closeSplit:closeSplitPdf};
@@ -272,7 +293,7 @@ splitDivider.addEventListener('pointermove',event=>{
 for(const type of ['pointerup','pointercancel','lostpointercapture'])splitDivider.addEventListener(type,event=>{if(splitDrag?.id===event.pointerId){splitDrag=null;if(splitDivider.hasPointerCapture(event.pointerId))splitDivider.releasePointerCapture(event.pointerId)}});
 splitDivider.addEventListener('keydown',event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();void relayoutPdfPanels(()=>{splitRatio=Math.max(25,Math.min(75,splitRatio+(event.key==='ArrowLeft'?-5:5)))});}});
 
-function createPdfTab() {
+function createPdfTab(saved = null) {
   const id = ++nextPdfTab;
   const tab = {
     frame: document.createElement('iframe'),
@@ -282,7 +303,9 @@ function createPdfTab() {
     reload: document.createElement('button'),
     close: document.createElement('button'),
     paneName: document.createElement('div'),
-    hasFile: false,
+    saved,
+    sessionID: saved?.id,
+    hasFile: !!saved,
   };
   tab.frame.title = 'PDF Grid 격자 뷰어';
   tab.panel.className = 'pdfTabPanel';
@@ -312,8 +335,11 @@ function createPdfTab() {
     tab.reload.setAttribute('aria-label', name + ' 새로고침');
     tab.reload.title = name + ' 새로고침';
   }
-  setName('새 탭');
-  tab.ready = new Promise(resolve => {
+  setName(saved?.name || '새 탭');
+  tab.reload.disabled = !saved;
+  let mounted;
+  tab.mount = () => mounted ??= new Promise(resolve => {
+    tab.resolveMount = resolve;
     tab.frame.addEventListener('load', () => {
       const paneFocus = () => { if (splitPdfTabs?.includes(tab) && activePdfTab !== tab) activatePdfTab(tab); };
       tab.frame.contentDocument.addEventListener('pointerdown',paneFocus,true);
@@ -332,11 +358,13 @@ function createPdfTab() {
         new MutationObserver(syncName).observe(filename, {childList: true, characterData: true, subtree: true});
         syncName();
       }
+      tab.resolveMount = null;
       resolve();
     }, {once: true});
+    tab.frame.src = GRID_VIEWER_URL + '&desktop=tab' + (!window.pdfGridDesktop && id === 1 ? '&restore=1' : '');
+    tab.panel.append(tab.frame);
   });
-  tab.frame.src = GRID_VIEWER_URL + '&desktop=tab' + (!window.pdfGridDesktop && id === 1 ? '&restore=1' : '');
-  tab.panel.append(tab.paneName,tab.frame);
+  tab.panel.append(tab.paneName);
   tab.item.append(tab.reload, tab.button, tab.close);
   pdfTabs.push(tab);
   $('pdfTabList').style.setProperty('--pdf-tab-count', pdfTabs.length);
@@ -373,7 +401,7 @@ window.pickPdfTabs = async () => {
       return file;
     }));
   } catch (error) {
-    activePdfTab?.frame.contentWindow.notice(error.message || 'PDF를 열지 못했습니다.');
+    activePdfTab?.frame.contentWindow?.notice?.(error.message || 'PDF를 열지 못했습니다.');
   }
 };
 $('addPDFTab').onclick = () => void window.pickPdfTabs();
@@ -381,8 +409,7 @@ $('tabFiles').onchange = event => {
   void window.openPdfTabs([...event.target.files]);
   event.target.value = '';
 };
-window.openPdfTabs = async files => {
-  await window.PDFGridSession.ready;
+async function openPdfFiles(files) {
   const valid = [...files].filter(file => file && (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)));
   if (!valid.length) return;
   setTab('viewer');
@@ -393,10 +420,20 @@ window.openPdfTabs = async files => {
     }
     const tab = activePdfTab?.hasFile ? createPdfTab() : activePdfTab || createPdfTab();
     tab.hasFile = true;
-    activatePdfTab(tab);
-    await tab.ready;
-    if (pdfTabs.includes(tab) && await tab.frame.contentWindow.openFile(file)) { tab.file = file; await window.PDFGridSession.keep(tab,file); }
+    await activatePdfTab(tab);
+    if (!pdfTabs.includes(tab)) continue;
+    if (await tab.frame.contentWindow.openFile(file, null, tab === activePdfTab)) {
+      if (!pdfTabs.includes(tab)) continue;
+      tab.file = file;
+      await window.PDFGridSession.keep(tab,file);
+    } else {
+      tab.hasFile = false;
+    }
   }
+}
+window.openPdfTabs = async files => {
+  await window.PDFGridSession.ready;
+  await openPdfFiles(files);
 };
 
 function message(text, error = false) { $('feedback').textContent = text; $('feedback').classList.toggle('error', error); }
@@ -411,7 +448,7 @@ function setTab(name) {
   $('feedback').hidden = readingOnly;
   window.scrollTo(0, 0);
   if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
-  if (name === 'viewer' && !activePdfTab) activatePdfTab(createPdfTab());
+  if (name === 'viewer' && !activePdfTab && !startingNative) activatePdfTab(createPdfTab());
   $('viewer').style.top = document.querySelector('nav').getBoundingClientRect().bottom + 'px';
 }
 async function run(task) {
@@ -502,10 +539,10 @@ function showResults(files) {
   }
   message('완료했습니다. 파일을 받거나 격자 보기에서 결과를 확인하세요.'); $('results').scrollIntoView({behavior: 'smooth', block: 'nearest'});
 }
-async function preview(file) {
+async function preview(file, open = window.openPdfTabs) {
   const source = new File([file.bytes], file.name, {type: 'application/pdf'});
   source.pdfGridSourceID = file.sourceID;
-  await window.openPdfTabs([source]);
+  await open([source]);
 }
 async function sample(name, count, color) {
   const doc = await lib.PDFDocument.create();
@@ -559,44 +596,65 @@ window.addEventListener('resize', () => { $('viewer').style.top = document.query
 new ResizeObserver(() => { $('viewer').style.top = document.querySelector('nav').getBoundingClientRect().bottom + 'px'; }).observe(document.querySelector('nav'));
 if (!lib || !core || !window.JSZip) { message('PDF 도구를 불러오지 못했습니다. 페이지를 새로고침해 주세요.', true); document.querySelectorAll('button').forEach(el => el.disabled = true); } else refresh();
 
+let startingNative = !!window.pdfGridDesktop;
 window.addEventListener('hashchange', () => { if (!busy && ['merge', 'split', 'viewer', 'local'].includes(location.hash.slice(1))) setTab(location.hash.slice(1)); });
 setTab(['merge', 'split', 'viewer', 'local'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'viewer');
 
-window.PDFGridNavigation={move:direction=>activePdfTab?.frame.contentWindow.pdfGridHistoryMove?.(direction)};
+window.PDFGridNavigation={move:direction=>activePdfTab?.frame.contentWindow?.pdfGridHistoryMove?.(direction)};
 const editingTarget=target=>target?.closest?.('input,textarea,select,[contenteditable]');
 document.addEventListener('keydown',event=>{const hardware=event.key==='BrowserBack'||event.key==='BrowserForward';if(event.defaultPrevented||event.ctrlKey||event.altKey||event.metaKey||(!hardware&&editingTarget(event.target)))return;const direction=(event.key==='['||event.key==='BrowserBack')?-1:(event.key===']'||event.key==='BrowserForward')?1:0;if(direction){event.preventDefault();window.PDFGridNavigation.move(direction)}},true);
 for(const type of ['mousedown','mouseup','auxclick'])document.addEventListener(type,event=>{if(event.button!==3&&event.button!==4)return;event.preventDefault();if(type==='mousedown')window.PDFGridNavigation.move(event.button===3?-1:1)},true);
-window.PDFGridSession.start({tabs:()=>pdfTabs,active:()=>activePdfTab,activate:activatePdfTab,settle:()=>pendingPdfLayout,
- layout:()=>splitPdfTabs?{left:splitPdfTabs[0].sessionID,right:splitPdfTabs[1].sessionID,ratio:splitRatio}:null,
- restoreLayout:async(layout,records)=>{
-  if(!layout)return;const left=pdfTabs.find(tab=>tab.sessionID===layout.left),right=pdfTabs.find(tab=>tab.sessionID===layout.right);
-  if(!left||!right||left===right)return;
-  const views=new Map(pdfTabs.map(tab=>[tab,records.find(record=>record.id===tab.sessionID)?.state?.view]).filter(([,view])=>view));
-  await relayoutPdfPanels(()=>{splitRatio=Math.max(25,Math.min(75,Number(layout.ratio)||50));splitPdfTabs=[left,right];activePdfTab=left},views);
- },restore:async(file,state,id)=>{
- const tab=activePdfTab?.hasFile?createPdfTab():activePdfTab||createPdfTab();tab.sessionID=id;tab.hasFile=true;activatePdfTab(tab);await tab.ready;
- if(await tab.frame.contentWindow.openFile(file,state)){tab.file=file;return tab}tab.hasFile=false;return null;
-}});
-if (window.pdfGridDesktop) {
-  let reading = false;
+const session = window.PDFGridSession;
+const savedWorkspace = session.start({
+  tabs: () => pdfTabs,
+  active: () => activePdfTab,
+  add: createPdfTab,
+  closedIds: () => closedPdfTabs.map(record => record.saved?.id),
+  settle: () => pendingPdfLayout,
+  layout: () => splitPdfTabs ? {left:splitPdfTabs[0].sessionID,right:splitPdfTabs[1].sessionID,ratio:splitRatio} : null,
+});
+if (startingNative) {
+  renderPdfTabs();
+  let reading;
   let requested = false;
-  async function openPendingPDFs() {
+  function openPendingPDFs() {
     requested = true;
-    if (reading) return;
-    reading = true;
-    try {
-      await window.PDFGridSession.ready;
+    return reading ??= (async () => {
       do {
         requested = false;
         let file;
-        while ((file = await window.pdfGridDesktop.getStartupPDF())) await preview(file);
+        while ((file = await window.pdfGridDesktop.getStartupPDF())) {
+          startingNative = false;
+          await preview(file, openPdfFiles);
+        }
       } while (requested);
-    } catch (error) {
+    })().catch(error => {
       message(error.message, true);
-    } finally {
-      reading = false;
-    }
+    }).finally(() => { reading = null; });
   }
   window.pdfGridDesktop.onPDFOpenRequested(openPendingPDFs);
-  void openPendingPDFs();
+  session.ready = (async () => {
+    // The native queue wins on cold launch. Old tabs stay metadata-only, even
+    // when a split layout was saved. An ordinary launch restores visible panes.
+    await openPendingPDFs();
+    const restoreWorkspace = startingNative;
+    startingNative = false;
+    if (restoreWorkspace && !activePdfTab) {
+      const layout = savedWorkspace?.layout;
+      const savedTab = id => pdfTabs.find(tab => tab.sessionID === id);
+      const active = savedTab(savedWorkspace?.active) || pdfTabs[0];
+      const left = layout && savedTab(layout.left), right = layout && savedTab(layout.right);
+      if (left && right && left !== right) {
+        splitRatio = Math.max(25, Math.min(75, Number(layout.ratio) || 50));
+        splitPdfTabs = [left,right];
+        activePdfTab = splitPdfTabs.includes(active) ? active : left;
+        renderPdfTabs();
+        await Promise.all([showPdfTab(left), showPdfTab(right)]);
+      } else {
+        await activatePdfTab(active || createPdfTab());
+      }
+    }
+  })().finally(() => session.finishStartup());
+} else {
+  session.finishStartup();
 }
