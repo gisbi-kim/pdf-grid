@@ -152,6 +152,21 @@
    const beforeReopen=document.querySelectorAll('#pdfTabList [role=tab]').length;
    document.querySelector('#devStatus').focus();await nativeTestStage('reopen-tab');
    await until(()=>!document.querySelector('#reopenPDFTab').hasAttribute('aria-busy')&&document.querySelectorAll('#pdfTabList [role=tab]').length===beforeReopen+1);
+   const desktop=window.pdfGridDesktop;
+   let releaseRefresh;
+   window.pdfGridDesktop={...desktop,refreshPDF:id=>new Promise(resolve=>{releaseRefresh=()=>resolve(desktop.refreshPDF(id))})};
+   try {
+    sourceTab.querySelector('[role=tab]').click();
+    const refreshing=PDFGridReload.refresh();
+    await until(()=>!!releaseRefresh);
+    sourceTab.querySelector('[role=tab]').focus();
+    await nativeTestStage('close-tab');
+    await until(()=>!sourceTab.isConnected);
+    const selected=document.querySelector('#pdfTabList [aria-selected=true]');
+    releaseRefresh();
+    await refreshing;
+    if(sourceTab.isConnected||document.querySelector('#pdfTabList [aria-selected=true]')!==selected)throw Error('A cancelled refresh changed the remaining tabs');
+   } finally {window.pdfGridDesktop=desktop}
    while(document.querySelectorAll('#pdfTabList [role=tab]').length>1)document.querySelector('.pdfTab:has([aria-selected="true"]) button[aria-label$=" 닫기"]').click();
    document.querySelector('.pdfTabPanel[aria-hidden="false"] iframe').contentDocument.querySelector('#stage').focus();
    await nativeTestStage('close-tab');

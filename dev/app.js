@@ -5,7 +5,7 @@ let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab 
 const MAX_BYTES = 100 * 1024 * 1024;
 const macDesktop = window.pdfGridDesktop?.platform === 'darwin';
 const tabShortcutLabel = macDesktop ? '⌘' : 'Ctrl+';
-const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.6.1' : '../viewer/?v=1.6.1';
+const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.6.2' : '../viewer/?v=1.6.2';
 function addGridSteppers(view) {
   const frame = view.defaultView;
   const columns = view.getElementById('cols');
@@ -139,7 +139,7 @@ function bindTabShortcuts(view) {
     if ((event.code !== 'KeyW' && event.key.toLowerCase() !== 'w') || event.shiftKey) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    if (!event.repeat && !busy && activeTab === 'viewer' && !document.querySelector('#updateDialog[open]')) activePdfTab?.close.click();
+    if (!event.repeat && activeTab === 'viewer' && !document.querySelector('#updateDialog[open]')) closePdfTab(activePdfTab);
   }, true);
 }
 bindTabShortcuts(document);
@@ -211,19 +211,27 @@ async function closeSplitPdf() {
   if (splitPdfTabs) await relayoutPdfPanels(() => { splitPdfTabs = null; });
 }
 function closePdfTab(tab, remember = true) {
-  if (!pdfTabs.includes(tab) || tab.close.disabled) return;
+  if (!pdfTabs.includes(tab)) return;
   window.PDFGridTabMenu.close();
   const previousActive = activePdfTab;
-  const preserveSnapshot = remember && !!tab.saved;
-  if (remember && hasPdfDocument(tab)) {
+  const existingRecord = closedPdfTabs.includes(tab.reopenRecord) ? tab.reopenRecord : null;
+  const preserveSnapshot = remember && !!(tab.saved || existingRecord?.saved);
+  const openedFile = pdfFile(tab);
+  const file = openedFile || tab.pendingFile;
+  if (remember && !existingRecord && (tab.saved || file)) {
     const index = pdfTabs.indexOf(tab);
     closedPdfTabs.push(tab.saved ? {saved:tab.saved,index} :
-      {file:pdfFile(tab),state:tab.frame.contentWindow.gridReloadState(),index,width:tab.frame.clientWidth});
-    if (closedPdfTabs.length > 20) window.PDFGridSession.drop(closedPdfTabs.shift().saved?.id);
+      {file,state:openedFile ? tab.refreshState || tab.frame.contentWindow.gridReloadState() : null,index,width:tab.frame.clientWidth});
+    if (closedPdfTabs.length > 20) {
+      const evicted = closedPdfTabs.shift();
+      if (!pdfTabs.some(item => item.reopenRecord === evicted)) window.PDFGridSession.drop(evicted.saved?.id);
+    }
   }
   const views = capturePdfViews(), resizing = !!splitPdfTabs?.includes(tab);
   const remove = () => {
     const index = pdfTabs.indexOf(tab), remaining = splitPdfTabs?.find(other => other !== tab);
+    tab.removed = true;
+    tab.resolveClosed(false);
     pdfTabs.splice(index,1); tab.item.remove(); tab.panel.remove(); tab.resolveMount?.();
     $('pdfTabList').style.setProperty('--pdf-tab-count',pdfTabs.length);
     if (resizing) splitPdfTabs = null;
@@ -244,38 +252,74 @@ async function reopenClosedPdfTab() {
     setTab('viewer');
     tab = record.saved ? createPdfTab(record.saved) :
       activePdfTab?.hasFile ? createPdfTab() : activePdfTab || createPdfTab();
-    if (!record.saved) {
-      tab.restoring=true;tab.close.disabled=true;tab.reload.disabled=true;tab.reload.setAttribute('aria-busy','true');
-    } else if (activePdfTab && !activePdfTab.hasFile && !splitPdfTabs) {
+    tab.reopenRecord = record;
+    tab.restoring = true;
+    tab.hasFile = true;
+    tab.reload.disabled = true;
+    tab.reload.setAttribute('aria-busy','true');
+    tab.setName(record.saved?.name || record.file.name);
+    if (record.saved && activePdfTab && !activePdfTab.hasFile && !splitPdfTabs) {
       closePdfTab(activePdfTab, false);
     }
     const previous = pdfTabs.indexOf(tab); pdfTabs.splice(previous,1); pdfTabs.splice(Math.min(record.index,pdfTabs.length),0,tab);
     for (const item of pdfTabs) $('pdfTabList').append(item.item);
-    await activatePdfTab(tab);
-    if (record.saved) {
-      const closedIndex = closedPdfTabs.indexOf(record);
-      if (closedIndex >= 0) closedPdfTabs.splice(closedIndex, 1);
-      return;
+    await Promise.race([restoreClosedPdf(tab, record), tab.closed]);
+    if (tab.removed) return;
+    const closedIndex = closedPdfTabs.indexOf(record);
+    if (closedIndex >= 0) closedPdfTabs.splice(closedIndex, 1);
+    renderPdfTabs();
+  } catch (error) {
+    if (tab?.removed) return;
+    if (tab) closePdfTab(tab, false);
+    activePdfTab?.frame.contentWindow?.notice?.(error.message || '닫은 탭을 복원하지 못했습니다.');
+  } finally {
+    if (tab && !tab.removed) {
+      tab.restoring = false;
+      tab.reopenRecord = null;
+      tab.reload.disabled = !tab.hasFile;
+      tab.reload.removeAttribute('aria-busy');
     }
-    let file = record.file, fallback = false;
-    try {
-      if (file.pdfGridSourceID && window.pdfGridDesktop) {
-        const source = await pdfGridDesktop.refreshPDF(file.pdfGridSourceID);
-        file = new File([source.bytes],source.name,{type:'application/pdf'}); file.pdfGridSourceID = source.sourceID;
-      } else if (file.pdfGridHandle) { const handle = file.pdfGridHandle; file = await handle.getFile(); file.pdfGridHandle = handle; }
-    } catch { fallback = true; }
-    let opened = await tab.frame.contentWindow.openFile(file,record.state);
-    if (!opened && file !== record.file) { fallback = true; file = record.file; opened = await tab.frame.contentWindow.openFile(file,record.state); }
-    if (!opened) throw Error('PDF를 다시 열지 못했습니다.');
-    tab.file = file; tab.hasFile = true;
-    await pendingPdfLayout;
-    if (tab.frame.clientWidth !== record.width) tab.frame.contentWindow.gridResizeView(record.state.view); else tab.frame.contentWindow.gridRestoreView(record.state.view);
-    await window.PDFGridSession.keep(tab,file);
-    const closedIndex=closedPdfTabs.indexOf(record);if(closedIndex>=0)closedPdfTabs.splice(closedIndex,1); renderPdfTabs();
-    tab.frame.contentDocument.getElementById('stage').focus({preventScroll:true});
-    if(fallback)tab.frame.contentWindow.notice('원본을 읽지 못해 닫을 때의 PDF를 복원했습니다.');
-  } catch (error) { if (tab) {tab.close.disabled=false;closePdfTab(tab,false)} activePdfTab?.frame.contentWindow?.notice?.(error.message || '닫은 탭을 복원하지 못했습니다.'); }
-  finally { if(tab){tab.restoring=false;tab.close.disabled=false;tab.reload.disabled=!tab.hasFile;tab.reload.removeAttribute('aria-busy')} reopeningPdf = false; workspaceControls(); }
+    reopeningPdf = false;
+    workspaceControls();
+  }
+}
+async function restoreClosedPdf(tab, record) {
+  await activatePdfTab(tab);
+  if (tab.removed || record.saved) return;
+  let file = record.file, fallback = false;
+  try {
+    if (file.pdfGridSourceID && window.pdfGridDesktop) {
+      const source = await pdfGridDesktop.refreshPDF(file.pdfGridSourceID);
+      file = new File([source.bytes],source.name,{type:'application/pdf'});
+      file.pdfGridSourceID = source.sourceID;
+    } else if (file.pdfGridHandle) {
+      const handle = file.pdfGridHandle;
+      file = await handle.getFile();
+      file.pdfGridHandle = handle;
+    }
+  } catch { fallback = true; }
+  if (tab.removed) return;
+  const viewer = tab.frame.contentWindow;
+  let opened = await viewer.openFile(file, record.state, false);
+  if (tab.removed) return;
+  if (!opened && file !== record.file) {
+    fallback = true;
+    file = record.file;
+    opened = await viewer.openFile(file, record.state, false);
+  }
+  if (tab.removed) return;
+  if (!opened) throw Error('PDF를 다시 열지 못했습니다.');
+  tab.file = file;
+  await pendingPdfLayout;
+  if (tab.removed) return;
+  if (record.state?.view) {
+    if (tab.frame.clientWidth !== record.width) viewer.gridResizeView(record.state.view);
+    else viewer.gridRestoreView(record.state.view);
+  }
+  await window.PDFGridSession.keep(tab,file);
+  if (tab.removed) return;
+  if (tab === activePdfTab) viewer.document.getElementById('stage').focus({preventScroll:true});
+  if (fallback) viewer.notice('원본을 읽지 못해 닫을 때의 PDF를 복원했습니다.');
 }
 window.PDFGridTabs = {reopen:reopenClosedPdfTab,canReopen:()=>!!closedPdfTabs.length&&!reopeningPdf,split:openSplitPdf,canSplit:canSplitPdf,closeSplit:closeSplitPdf};
 $('reopenPDFTab').onclick = () => void reopenClosedPdfTab();
@@ -307,6 +351,8 @@ function createPdfTab(saved = null) {
     sessionID: saved?.id,
     hasFile: !!saved,
   };
+  // A removed iframe can stop running pending PDF.js callbacks.
+  tab.closed = new Promise(resolve => { tab.resolveClosed = resolve; });
   tab.frame.title = 'PDF Grid 격자 뷰어';
   tab.panel.className = 'pdfTabPanel';
   tab.panel.id = 'pdf-panel-' + id;
@@ -336,11 +382,13 @@ function createPdfTab(saved = null) {
     tab.reload.title = name + ' 새로고침';
   }
   setName(saved?.name || '새 탭');
+  tab.setName = setName;
   tab.reload.disabled = !saved;
   let mounted;
   tab.mount = () => mounted ??= new Promise(resolve => {
     tab.resolveMount = resolve;
     tab.frame.addEventListener('load', () => {
+      if (tab.removed) return;
       const paneFocus = () => { if (splitPdfTabs?.includes(tab) && activePdfTab !== tab) activatePdfTab(tab); };
       tab.frame.contentDocument.addEventListener('pointerdown',paneFocus,true);
       tab.frame.contentDocument.addEventListener('keydown',paneFocus,true);
@@ -349,7 +397,7 @@ function createPdfTab(saved = null) {
       const filename = view.getElementById('filename');
       if (filename) {
         const syncName = () => {
-          if (!view.getElementById('stage').classList.contains('ready')) return;
+          if (tab.removed || !view.getElementById('stage').classList.contains('ready')) return;
           tab.hasFile = true;
           tab.reload.disabled = tab.reload.getAttribute('aria-busy') === 'true';
           setName(filename.textContent);
@@ -414,21 +462,32 @@ async function openPdfFiles(files) {
   if (!valid.length) return;
   setTab('viewer');
   for (const file of valid) {
+    const tab = activePdfTab?.hasFile ? createPdfTab() : activePdfTab || createPdfTab();
+    tab.hasFile = true;
+    tab.pendingFile = file;
+    tab.setName(file.name);
+    await Promise.race([openPdfInTab(tab,file),tab.closed]);
+  }
+}
+async function openPdfInTab(tab,file) {
+  try {
+    await activatePdfTab(tab);
+    if (tab.removed) return;
     if (!file.pdfGridSourceID && window.pdfGridDesktop?.sourceForFile) {
       // Some Files are generated in memory and have no native path.
       try { file.pdfGridSourceID = await window.pdfGridDesktop.sourceForFile(file); } catch {}
     }
-    const tab = activePdfTab?.hasFile ? createPdfTab() : activePdfTab || createPdfTab();
-    tab.hasFile = true;
-    await activatePdfTab(tab);
-    if (!pdfTabs.includes(tab)) continue;
-    if (await tab.frame.contentWindow.openFile(file, null, tab === activePdfTab)) {
-      if (!pdfTabs.includes(tab)) continue;
-      tab.file = file;
-      await window.PDFGridSession.keep(tab,file);
-    } else {
-      tab.hasFile = false;
-    }
+    if (tab.removed) return;
+    const viewer = tab.frame.contentWindow;
+    const opened = await viewer.openFile(file, null, false);
+    if (tab.removed) return;
+    tab.hasFile = !!opened;
+    if (!opened) { tab.setName('새 탭'); return; }
+    tab.file = file;
+    if (tab === activePdfTab) viewer.document.getElementById('stage').focus({preventScroll:true});
+    await window.PDFGridSession.keep(tab,file);
+  } finally {
+    tab.pendingFile = null;
   }
 }
 window.openPdfTabs = async files => {
