@@ -1,0 +1,116 @@
+name: Build and release macOS and Ubuntu installers
+on:
+  push:
+    branches: [main]
+    paths: ['desktop-cross/**', 'desktop-webview2/web/**', 'dev/**', 'viewer/**', 'scripts/sync-ui.py', '.github/workflows/desktop-cross.yml']
+  pull_request:
+    branches: [main]
+    paths: ['desktop-cross/**', 'desktop-webview2/web/**', 'dev/**', 'viewer/**', 'scripts/sync-ui.py', '.github/workflows/desktop-cross.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package and test ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macOS Apple Silicon
+            runner: macos-15
+            target: --mac --arm64
+            artifact: mac-arm64
+          - platform: macOS Intel
+            runner: macos-15-intel
+            target: --mac --x64
+            artifact: mac-x64
+          - platform: Ubuntu x86-64
+            runner: ubuntu-24.04
+            target: --linux --x64
+            artifact: linux-amd64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: desktop-cross/package-lock.json
+      - name: Verify shared UI
+        run: |
+          python3 scripts/sync-ui.py --check
+          node --test dev/tests/*.test.cjs
+      - name: Build installer
+        working-directory: desktop-cross
+        env:
+          # Use the package's ad hoc identity even on PR builds. No credentials are used.
+          CSC_FOR_PULL_REQUEST: 'true'
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          PACKAGE_TARGET: ${{ matrix.target }}
+        run: |
+          npm ci
+          npm run package -- $PACKAGE_TARGET
+      - name: Install and exercise the Ubuntu package
+        if: runner.os == 'Linux'
+        working-directory: desktop-cross
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xauth ./dist/*.deb
+          dpkg-query -W pdf-grid
+          grep -q 'application/pdf' /usr/share/applications/pdf-grid.desktop
+          PDF_GRID_EXECUTABLE="$(command -v pdf-grid)" xvfb-run -a npm run smoke
+      - name: Mount, install and exercise the Mac app
+        if: runner.os == 'macOS'
+        working-directory: desktop-cross
+        run: |
+          mountpoint="$RUNNER_TEMP/pdf-grid-volume"
+          hdiutil attach -nobrowse -readonly -mountpoint "$mountpoint" dist/*.dmg
+          trap 'hdiutil detach "$mountpoint"' EXIT
+          installed="$RUNNER_TEMP/PDF Grid.app"
+          ditto "$mountpoint/PDF Grid.app" "$installed"
+          codesign --verify --deep --strict "$installed"
+          PDF_GRID_EXECUTABLE="$installed/Contents/MacOS/PDF Grid" npm run smoke
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pdf-grid-${{ matrix.artifact }}
+          path: |
+            desktop-cross/dist/*.dmg
+            desktop-cross/dist/*.deb
+          if-no-files-found: error
+  release:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: package
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    concurrency:
+      group: pdf-grid-cross-release
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pdf-grid-*
+          path: release
+          merge-multiple: true
+      - name: Publish verified downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(node -p 'require("./desktop-cross/package.json").version')"
+          tag="desktop-cross-v$version"
+          cd release
+          test -f "PDF-Grid-$version-mac-arm64.dmg"
+          test -f "PDF-Grid-$version-mac-x64.dmg"
+          test -f "PDF-Grid-$version-linux-amd64.deb"
+          sha256sum *.dmg *.deb > SHA256SUMS.txt
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already published. Bump desktop-cross/package.json to publish a new version."
+            exit 0
+          fi
+          gh release create "$tag" *.dmg *.deb SHA256SUMS.txt \
+            --target "$GITHUB_SHA" --latest=false \
+            --title "PDF Grid $version for macOS and Ubuntu" --notes-file ../desktop-cross/RELEASE-NOTES.md

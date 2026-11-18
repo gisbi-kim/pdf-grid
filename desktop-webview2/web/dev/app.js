@@ -3,6 +3,8 @@ const $ = id => document.getElementById(id);
 const lib = window.PDFLib, core = window.PDFGridTools;
 let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab = 'merge', busy = false;
 const MAX_BYTES = 100 * 1024 * 1024;
+const macDesktop = window.pdfGridDesktop?.platform === 'darwin';
+const tabShortcutLabel = macDesktop ? '⌘' : 'Ctrl+';
 const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.6.0' : '../viewer/?v=1.6.0';
 function addGridSteppers(view) {
   const frame = view.defaultView;
@@ -126,13 +128,15 @@ function bindTabShortcuts(view) {
   // Chrome reserves Ctrl+W for the browser tab; only the installed host owns it.
   if (!window.pdfGridDesktop) return;
   view.addEventListener('keydown', event => {
-    const reopen = event.ctrlKey && event.shiftKey && (event.code === 'KeyT' || event.key.toLowerCase() === 't');
-    if (reopen && !event.altKey && !event.metaKey && !event.isComposing) {
+    const modifier = event.metaKey ? macDesktop && !event.ctrlKey : event.ctrlKey;
+    if (!modifier || event.altKey || event.isComposing) return;
+    const reopen = event.shiftKey && (event.code === 'KeyT' || event.key.toLowerCase() === 't');
+    if (reopen) {
       event.preventDefault(); event.stopImmediatePropagation();
       if (!event.repeat) void reopenClosedPdfTab();
       return;
     }
-    if ((event.code !== 'KeyW' && event.key.toLowerCase() !== 'w') || !event.ctrlKey || event.altKey || event.metaKey || event.shiftKey || event.isComposing) return;
+    if ((event.code !== 'KeyW' && event.key.toLowerCase() !== 'w') || event.shiftKey) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     if (!event.repeat && !busy && activeTab === 'viewer' && !document.querySelector('#updateDialog[open]')) activePdfTab?.close.click();
@@ -145,7 +149,7 @@ function readablePdfTabs() { return pdfTabs.filter(tab => tab.hasFile && pdfFile
 function workspaceControls() {
   $('reopenPDFTab').disabled = reopeningPdf || !closedPdfTabs.length;
   if(reopeningPdf)$('reopenPDFTab').setAttribute('aria-busy','true');else $('reopenPDFTab').removeAttribute('aria-busy');
-  $('reopenPDFTab').title = '닫은 탭 복원' + (window.pdfGridDesktop ? ' (Ctrl+Shift+T)' : '');
+  $('reopenPDFTab').title = '닫은 탭 복원' + (window.pdfGridDesktop ? ' (' + tabShortcutLabel + 'Shift+T)' : '');
   $('toggleSplitView').disabled = !splitPdfTabs && readablePdfTabs().length < 2;
   $('toggleSplitView').setAttribute('aria-pressed', String(!!splitPdfTabs));
   $('toggleSplitView').textContent = splitPdfTabs ? '나란히 끄기' : '나란히 보기';
@@ -304,7 +308,7 @@ function createPdfTab() {
     tab.name=name;
     tab.button.textContent = tab.button.title = name;
     tab.close.setAttribute('aria-label', name + ' 닫기');
-    tab.close.title = name + ' 닫기' + (window.pdfGridDesktop ? ' (Ctrl+W)' : '');
+    tab.close.title = name + ' 닫기' + (window.pdfGridDesktop ? ' (' + tabShortcutLabel + 'W)' : '');
     tab.reload.setAttribute('aria-label', name + ' 새로고침');
     tab.reload.title = name + ' 새로고침';
   }
@@ -383,6 +387,10 @@ window.openPdfTabs = async files => {
   if (!valid.length) return;
   setTab('viewer');
   for (const file of valid) {
+    if (!file.pdfGridSourceID && window.pdfGridDesktop?.sourceForFile) {
+      // Some Files are generated in memory and have no native path.
+      try { file.pdfGridSourceID = await window.pdfGridDesktop.sourceForFile(file); } catch {}
+    }
     const tab = activePdfTab?.hasFile ? createPdfTab() : activePdfTab || createPdfTab();
     tab.hasFile = true;
     activatePdfTab(tab);

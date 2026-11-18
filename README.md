@@ -1,6 +1,6 @@
 # PDF Grid
 
-PDF 여러 페이지를 연속 격자로 펼치고, 논문의 인용과 읽던 위치를 오가며 읽는 웹·Windows 뷰어입니다.
+PDF 여러 페이지를 연속 격자로 펼치고, 논문의 인용과 읽던 위치를 오가며 읽는 웹·Windows·macOS·Ubuntu 뷰어입니다.
 
 - 설치 앱을 껐다 켜도 마지막 창 위치·크기·최대화 상태, PDF 탭 순서·활성 탭·각 탭의 보기 위치 복원
 - PDF 내부 링크·목차 이동 후 `[` / `]`, 마우스 뒤로/앞으로 버튼 또는 하단 버튼으로 이전·다음 읽기 위치 이동
@@ -8,6 +8,8 @@ PDF 여러 페이지를 연속 격자로 펼치고, 논문의 인용과 읽던 �
 - 논문 인용 링크에 호버하거나 키보드로 포커스하면 문서의 참고문헌 정보를 인플레이스 카드로 미리 보기
 
 **실행:** https://gisbi-kim.github.io/pdf-grid/
+
+**설치 파일:** [Windows · macOS · Ubuntu](#설치)
 
 - 각 PDF 탭 제목 왼쪽의 작은 **↻ 아이콘**으로 해당 PDF만 새로고침 (다른 탭·선택·읽기 위치 유지)
 - 설치판: Ctrl+R / F5로 다시 빌드된 현재 PDF를 불러오기 (탭·보기 위치 유지)
@@ -36,15 +38,15 @@ PDF 여러 페이지를 연속 격자로 펼치고, 논문의 인용과 읽던 �
 - 0: 화면 맞춤
 
 PDF 파일은 브라우저 안에서 처리되며 서버로 업로드되지 않습니다. 마지막으로 연 PDF 원본은 IndexedDB에, 보기 설정은 로컬 저장소에 저장됩니다. 브라우저의 사이트 데이터를 지우면 저장된 PDF도 삭제됩니다. PDF 비밀번호는 저장하지 않습니다. 저장 공간 부족이나 브라우저의 저장 제한이 있으면 복원 불가 안내를 표시하며 현재 파일은 계속 볼 수 있습니다.
-오프라인에서는 아래 Windows 앱을 사용하세요. 웹 소스를 직접 실행하려면 저장소 전체를 내려받고 `python -m http.server 8000`으로 실행한 다음 `http://localhost:8000/`을 여세요. 웹 화면은 `dev/`와 `viewer/`의 로컬 자산을 함께 사용합니다.
+오프라인에서는 아래 설치 앱을 사용하세요. 웹 소스를 직접 실행하려면 저장소 전체를 내려받고 `python -m http.server 8000`으로 실행한 다음 `http://localhost:8000/`을 여세요. 웹 화면은 `dev/`와 `viewer/`의 로컬 자산을 함께 사용합니다.
 
 ## 웹·설치판 동기화 (1.4.3)
 
-웹 기본 주소와 기존 `/dev/` 주소는 설치판과 같은 화면·PDF 기능을 사용합니다. DEV 버튼은 이동 없이 “현재 dev 버전과 release 버전이 같습니다.” 안내를 버튼 근처에 표시합니다. GitHub 버튼으로 소스 저장소를 열고, 웹의 설치 버튼으로 Windows 설치 파일을 받을 수 있습니다.
+웹 기본 주소와 기존 `/dev/` 주소는 설치판과 같은 화면·PDF 기능을 사용합니다. DEV 버튼은 이동 없이 “현재 dev 버전과 release 버전이 같습니다.” 안내를 버튼 근처에 표시합니다. GitHub 버튼으로 소스 저장소를 열고, 웹의 설치 버튼에서 운영체제에 맞는 설치 파일을 받을 수 있습니다.
 
 공유 소스는 `dev/`와 `viewer/index.html`입니다. 수정 후 `python scripts/sync-ui.py`로 기본 웹 진입점과 설치 앱 내장 자산을 생성합니다. `python scripts/sync-ui.py --check`는 두 묶음이 같은지 검사하며 Windows 빌드에서도 실행됩니다. 검증: `node --test dev/tests/*.test.cjs`. 자세한 구조·제약은 [공유 UI 안내](dev/README.md)를 참고하세요.
 
-웹에서는 브라우저 다운로드·클립보드를, 설치판에서는 Windows 저장 대화상자·클립보드와 업데이트 확인을 사용합니다. 문서와 보기 상태는 각 브라우저/앱에 따로 저장되며 서로 전송되지 않습니다.
+웹에서는 브라우저 다운로드·클립보드를, 설치판에서는 운영체제의 저장 대화상자와 클립보드를 사용합니다. Windows판은 앱 안에서 업데이트할 수 있고, macOS·Ubuntu판은 새 설치 파일을 받아 업데이트합니다. 문서와 보기 상태는 각 브라우저/앱에 따로 저장되며 서로 전송되지 않습니다.
 
 | 버전 | 변경 | 호환성·제약 |
 | --- | --- | --- |
@@ -61,8 +63,20 @@ PDF 파일은 브라우저 안에서 처리되며 서버로 업로드되지 않�
 | [1.5.5](https://github.com/gisbi-kim/pdf-grid/releases/tag/desktop-v1.5.5-build.46) | 설치 앱 Ctrl+W로 현재 PDF 탭 닫기 | 마지막 탭은 빈 탭으로 교체. 웹의 Ctrl+W는 브라우저 탭 닫기를 유지 |
 | [1.5.6](https://github.com/gisbi-kim/pdf-grid/releases/tag/desktop-v1.5.6-build.48) | 탭 이름 우클릭 메뉴와 절대경로 복사 | 설치 앱에서 원본 경로가 확인되는 PDF에 제공. 웹·경로 없는 생성 PDF에서는 비활성화 및 이유 안내 |
 | 1.6.0 | 닫은 탭 복원(Ctrl+Shift+T), 두 PDF 좌우 보기와 폭 조절, 분할 상태 재시작 복원 | 닫은 탭 이력은 실행 중 최근 20개만 메모리에 보관. 웹은 ↶/메뉴로 복원하며 브라우저 예약 단축키는 유지 |
+| [1.6.0 macOS·Ubuntu](https://github.com/gisbi-kim/pdf-grid/releases/tag/desktop-cross-v1.6.0) | 공통 PDF 화면과 작업 복원 기능을 오프라인 설치 앱으로 제공 | Mac Apple Silicon·Intel, Ubuntu 24.04 x86-64. Mac은 ⌘+W, ⌘+Shift+T, ⌘+R 지원 |
 
-## Windows app
+## 설치
+
+| 운영체제 | 다운로드 | 설치 방법 |
+| --- | --- | --- |
+| Windows 10/11 x64 | [설치 EXE](https://github.com/gisbi-kim/pdf-grid/releases/latest/download/PDF-Grid-Setup.exe) | 설치 프로그램을 실행합니다. |
+| macOS 13 이상, Apple Silicon (M 시리즈) | [Apple Silicon DMG](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.0/PDF-Grid-1.6.0-mac-arm64.dmg) | DMG를 열고 PDF Grid를 응용 프로그램 폴더에 넣습니다. |
+| macOS 13 이상, Intel | [Intel DMG](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.0/PDF-Grid-1.6.0-mac-x64.dmg) | DMG를 열고 PDF Grid를 응용 프로그램 폴더에 넣습니다. |
+| Ubuntu 24.04 LTS, x86-64 | [DEB](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.0/PDF-Grid-1.6.0-linux-amd64.deb) | 다운로드 폴더에서 `sudo apt install ./PDF-Grid-1.6.0-linux-amd64.deb`를 실행합니다. |
+
+Mac 배포판은 Apple 공증을 받지 않았습니다. 다운로드 출처와 [SHA-256 해시](https://github.com/gisbi-kim/pdf-grid/releases/download/desktop-cross-v1.6.0/SHA256SUMS.txt)를 확인한 뒤, 첫 실행이 차단되면 Apple의 [‘그래도 열기’ 안내](https://support.apple.com/en-us/102445)를 따르세요. macOS·Ubuntu의 소스 빌드와 검증 절차는 [설치판 개발 안내](desktop-cross/README.md)에 있습니다.
+
+### Windows 앱
 
 [Windows 설치 파일](https://github.com/gisbi-kim/pdf-grid/releases/latest/download/PDF-Grid-Setup.exe) · [설치 없이 실행하는 EXE](https://github.com/gisbi-kim/pdf-grid/releases/latest/download/PDF-Grid-Portable.exe) · [소스 및 빌드 안내](desktop-webview2/README.md)
 
@@ -72,7 +86,7 @@ Windows 10/11 x64에서 별도 앱 창으로 실행합니다. 공유 WebView2 Ru
 
 ## 읽기 작업 저장과 인용 미리보기
 
-설치판의 창 배치는 `%LOCALAPPDATA%\PDFGridWebView\window-placement.json`, 다시 읽을 PDF 원본 경로 연결은 같은 폴더의 `pdf-sources.json`에 저장됩니다. 탭의 PDF 사본은 WebView2 프로필의 IndexedDB에, 탭 순서·선택·격자·확대율·스크롤·이동 이력은 로컬 저장소에 저장됩니다. 정상 종료 전에 저장을 마친 다음 창을 닫습니다. 설치 앱 업데이트는 이 프로필을 지우지 않습니다. 최소화 상태로 종료했다면 다음 실행에는 이전 일반/최대화 상태로 표시하고, 연결이 끊긴 모니터의 위치는 그대로 적용하지 않습니다.
+Windows판의 창 배치는 `%LOCALAPPDATA%\PDFGridWebView\window-placement.json`, 다시 읽을 PDF 원본 경로 연결은 같은 폴더의 `pdf-sources.json`에 저장됩니다. macOS·Ubuntu판은 각 Electron 사용자 프로필에 창 배치와 원본 경로 연결을 저장합니다. 탭의 PDF 사본은 앱 프로필의 IndexedDB에, 탭 순서·선택·격자·확대율·스크롤·이동 이력은 로컬 저장소에 저장됩니다. 정상 종료 전에 저장을 마친 다음 창을 닫습니다. 설치 앱 업데이트는 이 프로필을 지우지 않습니다. 창 위치는 운영체제의 창 관리자 정책을 따릅니다.
 
 원본이 있으면 재실행 시 디스크에서 새로 읽고, 없거나 아직 유효한 PDF가 아니면 저장된 PDF 사본으로 복원하면서 안내합니다. 탭을 닫으면 해당 탭의 PDF 캐시를 제거합니다. 비밀번호는 저장하지 않습니다. **1.4.x에는 여러 탭 저장 기능이 없으므로 1.5.0으로 처음 업데이트한 뒤 PDF를 한 번 다시 열어 두면 이후부터 복원됩니다.** 저장 공간 부족·사이트 데이터/프로필 삭제는 복원을 제한할 수 있습니다.
 
