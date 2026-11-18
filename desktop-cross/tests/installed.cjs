@@ -82,6 +82,8 @@ async function main() {
     await tab('논문 B.pdf').waitFor({ state: 'detached' });
     await page.keyboard.press(modifier + '+Shift+t');
     const reopened = await stage('논문 B.pdf');
+    // The document can paint before its reopened workspace record is saved.
+    await page.locator('#reopenPDFTab:not([aria-busy])').waitFor();
     await writeFile(paperB, await fixture(pdfLib, 23));
     await reopened.focus();
     await page.keyboard.press(modifier + '+r');
