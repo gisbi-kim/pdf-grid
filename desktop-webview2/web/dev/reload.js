@@ -41,8 +41,9 @@ window.PDFGridReload = (() => {
   function bind(doc) {
     if (!window.pdfGridDesktop) return;
     doc.addEventListener('keydown', event => {
-      const reload = event.key === 'F5' || (event.ctrlKey && event.key.toLowerCase() === 'r');
-      if (!reload || event.altKey || event.metaKey) return;
+      const modifier = event.metaKey ? window.pdfGridDesktop.platform === 'darwin' && !event.ctrlKey : event.ctrlKey;
+      const reload = event.key === 'F5' || (modifier && event.key.toLowerCase() === 'r');
+      if (!reload || event.altKey || (event.metaKey && !modifier)) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       if (!event.repeat) void refresh();

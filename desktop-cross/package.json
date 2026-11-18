@@ -1,0 +1,49 @@
+{
+  "name": "pdf-grid",
+  "productName": "PDF Grid",
+  "version": "1.6.0",
+  "description": "Offline PDF Grid viewer, merger and splitter",
+  "author": "PDF Grid contributors <gisbi-kim@users.noreply.github.com>",
+  "homepage": "https://github.com/gisbi-kim/pdf-grid",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "package": "electron-builder --publish never",
+    "smoke": "node tests/installed.cjs"
+  },
+  "devDependencies": {
+    "electron": "45.3.4",
+    "electron-builder": "26.18.0",
+    "playwright-core": "1.65.1"
+  },
+  "build": {
+    "appId": "io.github.gisbi_kim.pdf_grid",
+    "artifactName": "PDF-Grid-${version}-${os}-${arch}.${ext}",
+    "files": ["main.cjs", "preload.cjs", "package.json", "icon.png"],
+    "extraResources": [
+      {
+        "from": "../desktop-webview2/web",
+        "to": "web",
+        "filter": ["**/*", "!dev/tests/**", "!LICENSE-Go.txt", "!LICENSE-WebView2-SDK.txt", "!LICENSE-go-*", "!LICENSE-x-sys.txt"]
+      }
+    ],
+    "fileAssociations": [
+      {"ext": "pdf", "name": "PDF document", "mimeType": "application/pdf", "role": "Viewer"}
+    ],
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.productivity",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "notarize": false,
+      "icon": "icon.png"
+    },
+    "linux": {
+      "target": "deb",
+      "category": "Office",
+      "executableName": "pdf-grid",
+      "icon": "icon.png"
+    }
+  }
+}
