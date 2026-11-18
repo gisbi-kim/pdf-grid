@@ -1,6 +1,7 @@
 {
   "name": "pdf-grid",
   "productName": "PDF Grid",
+  "desktopName": "pdf-grid.desktop",
   "version": "1.6.0",
   "description": "Offline PDF Grid viewer, merger and splitter",
   "author": "PDF Grid contributors <gisbi-kim@users.noreply.github.com>",
@@ -29,11 +30,12 @@
       }
     ],
     "fileAssociations": [
-      {"ext": "pdf", "name": "PDF document", "mimeType": "application/pdf", "role": "Viewer"}
+      {"ext": "pdf", "name": "PDF document", "role": "Viewer"}
     ],
     "mac": {
       "target": "dmg",
       "category": "public.app-category.productivity",
+      "minimumSystemVersion": "13.0",
       "identity": "-",
       "hardenedRuntime": false,
       "notarize": false,
@@ -43,6 +45,9 @@
       "target": "deb",
       "category": "Office",
       "executableName": "pdf-grid",
+      "executableArgs": ["%F"],
+      "mimeTypes": ["application/pdf"],
+      "syncDesktopName": true,
       "icon": "icon.png"
     }
   }

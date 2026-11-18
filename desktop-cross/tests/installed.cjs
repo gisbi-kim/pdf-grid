@@ -28,7 +28,7 @@ async function main() {
   let page;
 
   async function launch(files = []) {
-    application = await _electron.launch({ executablePath, args: [...args, ...files] });
+    application = await _electron.launch({ executablePath, args: [...args, ...files], chromiumSandbox: true });
     page = await application.firstWindow();
     await page.evaluate(async () => window.PDFGridSession?.ready);
     page.setDefaultTimeout(15000);
