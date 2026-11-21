@@ -1,4 +1,6 @@
-PDF Grid 1.6.3 for Windows 10/11 x64
+PDF Grid 1.6.4 for Windows 10/11 x64
+
+- Drag another PDF tab to either half of the viewer to start side-by-side view. The dragged PDF opens on that side and the current PDF moves to the opposite pane.
 
 - Drag a PDF tab title onto either side of the split view. The destination pane highlights during the drag. Dragging one visible PDF onto the other pane swaps them and preserves each document's reading position.
 

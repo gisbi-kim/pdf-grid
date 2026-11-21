@@ -140,9 +140,19 @@
    const reopened=document.querySelector('.pdfTabPanel[data-active="true"] iframe').contentWindow,restoredView=reopened.gridReloadState();
    if(Math.abs(restoredView.view.top-lastClosed.state.view.top)>4||Math.abs(restoredView.view.scale-lastClosed.state.view.scale)>.002||JSON.stringify(restoredView.navigation)!==JSON.stringify(lastClosed.state.navigation))throw Error('Ctrl+Shift+T did not restore the reading state');
    if([...document.querySelectorAll('#pdfTabList [role=tab]')].findIndex(t=>t.textContent===lastClosed.name)!==lastClosed.index)throw Error('Closed tab order was not restored');
-   await PDFGridTabs.split();
+   const selectedTab=document.querySelector('#pdfTabList [aria-selected=true]');
+   const otherTab=[...document.querySelectorAll('#pdfTabList [role=tab]')].find(tab=>tab!==selectedTab);
+   const pointOn=(element,fraction=.5)=>{
+    const rect=element.getBoundingClientRect();
+    return [rect.left+rect.width*fraction,rect.top+rect.height/2].map(value=>Math.round(value*devicePixelRatio));
+   };
+   const singleFrame=document.querySelector('.pdfTabPanel[aria-hidden=false] iframe');
+   await nativeTestStage('drag-pane-tab:'+ [...pointOn(otherTab),...pointOn(singleFrame,.75)].join(','));
+   await until(()=>document.querySelector('.splitRight')?.getAttribute('aria-labelledby')===otherTab.id);
    if(document.querySelectorAll('.pdfTabPanel[aria-hidden="false"]').length!==2)throw Error('Two PDFs were not displayed side by side');
    const leftPane=document.querySelector('.splitLeft iframe').contentWindow,rightPane=document.querySelector('.splitRight iframe').contentWindow;
+   if(leftPane!==reopened)throw Error('Dragging to start split view moved the current PDF to the wrong side');
+   await pendingPdfLayout;
    const leftState=leftPane.gridReloadState();rightPane.go(7);await sleep(80);
    const leftAfter=leftPane.gridReloadState();
    if(leftAfter.key!==leftState.key||leftAfter.view.page!==leftState.view.page||Math.abs(leftAfter.view.top-leftState.view.top)>4||Math.abs(leftAfter.view.left-leftState.view.left)>4||Math.abs(leftAfter.view.scale-leftState.view.scale)>.002)throw Error('Scrolling the right PDF moved the left PDF: '+JSON.stringify({before:leftState,after:leftAfter}));
@@ -150,11 +160,7 @@
    const movingPanel=document.querySelector('.splitLeft'),movingTab=document.getElementById(movingPanel.getAttribute('aria-labelledby'));
    for(const [side,opposite] of [['Right','Left'],['Left','Right']]){
     const other=document.querySelector('.split'+side),destination=other.querySelector('iframe');
-    const center=element=>{
-     const rect=element.getBoundingClientRect();
-     return [rect.left+rect.width/2,rect.top+rect.height/2].map(value=>Math.round(value*devicePixelRatio));
-    };
-    await nativeTestStage('drag-pane-tab:'+ [...center(movingTab),...center(destination)].join(','));
+    await nativeTestStage('drag-pane-tab:'+ [...pointOn(movingTab),...pointOn(destination)].join(','));
     await until(()=>movingPanel.classList.contains('split'+side));
     if(!other.classList.contains('split'+opposite)||movingPanel.querySelector('iframe').contentWindow!==leftPane)throw Error('Dragging a tab did not swap the existing PDF panes');
    }

@@ -5,7 +5,7 @@ let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab 
 const MAX_BYTES = 100 * 1024 * 1024;
 const macDesktop = window.pdfGridDesktop?.platform === 'darwin';
 const tabShortcutLabel = macDesktop ? '⌘' : 'Ctrl+';
-const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.6.3' : '../viewer/?v=1.6.3';
+const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.6.4' : '../viewer/?v=1.6.4';
 function addGridSteppers(view) {
   const frame = view.defaultView;
   const columns = view.getElementById('cols');
@@ -159,14 +159,18 @@ function workspaceControls() {
   $('toggleSplitView').setAttribute('aria-pressed', String(!!splitPdfTabs));
   $('toggleSplitView').textContent = splitPdfTabs ? '나란히 끄기' : '나란히 보기';
 }
+function canDragPdfTab(tab) {
+  return hasPdfDocument(tab) && (!!splitPdfTabs || tab !== activePdfTab && hasPdfDocument(activePdfTab));
+}
 function renderPdfTabs() {
-  if (pdfTabDrag && (pdfTabDrag.layout !== splitPdfTabs || pdfTabDrag.tab.removed)) finishPdfTabDrag();
+  if (pdfTabDrag && (pdfTabDrag.layout !== splitPdfTabs || pdfTabDrag.tab.removed ||
+      (!splitPdfTabs && pdfTabDrag.previousActive !== activePdfTab))) finishPdfTabDrag();
   for (const item of pdfTabs) {
     const selected = item === activePdfTab, pane = splitPdfTabs?.indexOf(item) ?? -1;
     const visible = splitPdfTabs ? pane >= 0 : selected;
     item.button.setAttribute('aria-selected', selected);
     item.button.tabIndex = selected ? 0 : -1;
-    item.button.toggleAttribute('data-pane-draggable', !!splitPdfTabs && hasPdfDocument(item));
+    item.button.toggleAttribute('data-pane-draggable', canDragPdfTab(item));
     item.panel.setAttribute('aria-hidden', !visible);
     item.panel.dataset.active = String(selected);
     item.panel.classList.toggle('splitLeft', pane === 0); item.panel.classList.toggle('splitRight', pane === 1);
@@ -213,7 +217,10 @@ async function openSplitPdf(tab = activePdfTab) {
   if (!canSplitPdf(tab)) tab = readablePdfTabs()[0];
   const left = hasPdfDocument(activePdfTab) ? activePdfTab : readablePdfTabs()[0];
   const right = tab !== left ? tab : readablePdfTabs().find(other => other !== left);
-  await relayoutPdfPanels(() => { splitPdfTabs = [left,right]; activePdfTab = left; });
+  await showSplitPdfTabs(left, right, left);
+}
+async function showSplitPdfTabs(left, right, active) {
+  await relayoutPdfPanels(() => { splitPdfTabs = [left,right]; activePdfTab = active; });
   await Promise.all([showPdfTab(left), showPdfTab(right)]);
 }
 async function closeSplitPdf() {
@@ -347,11 +354,12 @@ for(const type of ['pointerup','pointercancel','lostpointercapture'])splitDivide
 splitDivider.addEventListener('keydown',event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();void relayoutPdfPanels(()=>{splitRatio=Math.max(25,Math.min(75,splitRatio+(event.key==='ArrowLeft'?-5:5)))});}});
 
 function pdfPaneAt(event) {
-  return splitPdfTabs?.findIndex(tab => {
-    const rect = tab.panel.getBoundingClientRect();
-    return event.clientX >= rect.left && event.clientX < rect.right &&
-      event.clientY >= rect.top && event.clientY < rect.bottom;
-  }) ?? -1;
+  const containsPointer = rect => event.clientX >= rect.left && event.clientX < rect.right &&
+    event.clientY >= rect.top && event.clientY < rect.bottom;
+  if (splitPdfTabs) return splitPdfTabs.findIndex(tab => containsPointer(tab.panel.getBoundingClientRect()));
+  const area = $('pdfTabPanels').getBoundingClientRect();
+  if (!containsPointer(area)) return -1;
+  return event.clientX < area.left + area.width / 2 ? 0 : 1;
 }
 function finishPdfTabDrag(event) {
   const drag = pdfTabDrag;
@@ -361,16 +369,27 @@ function finishPdfTabDrag(event) {
   drag.tab.item.classList.remove('tabDragSource');
   drag.target?.classList.remove('tabDropTarget');
   $('pdfTabPanels').classList.remove('tabDragActive');
+  delete $('pdfTabPanels').dataset.tabDropSide;
   if (drag.tab.button.hasPointerCapture(drag.pointerId)) drag.tab.button.releasePointerCapture(drag.pointerId);
-  if (destination >= 0) void activatePdfTab(drag.tab, true, destination);
+  if (destination < 0 || !canDragPdfTab(drag.tab)) return;
+  if (splitPdfTabs) {
+    void activatePdfTab(drag.tab, true, destination);
+  } else {
+    const current = activePdfTab;
+    const [left, right] = destination === 0 ? [drag.tab, current] : [current, drag.tab];
+    void showSplitPdfTabs(left, right, drag.tab);
+    drag.tab.button.focus({preventScroll:true});
+  }
 }
 function bindPdfTabDrag(tab) {
   const button = tab.button;
   button.addEventListener('pointerdown', event => {
     suppressPdfTabClick = null;
-    if (pdfTabDrag || !splitPdfTabs || busy || event.button !== 0 ||
-        event.pointerType === 'touch' || !hasPdfDocument(tab)) return;
-    pdfTabDrag = {tab, layout:splitPdfTabs, pointerId:event.pointerId, x:event.clientX, y:event.clientY};
+    if (pdfTabDrag || busy || event.button !== 0 || event.pointerType === 'touch' || !canDragPdfTab(tab)) return;
+    pdfTabDrag = {
+      tab, layout:splitPdfTabs, previousActive:activePdfTab,
+      pointerId:event.pointerId, x:event.clientX, y:event.clientY,
+    };
     button.setPointerCapture(event.pointerId);
   });
   button.addEventListener('pointermove', event => {
@@ -383,7 +402,13 @@ function bindPdfTabDrag(tab) {
       tab.item.classList.add('tabDragSource');
       $('pdfTabPanels').classList.add('tabDragActive');
     }
-    const target = splitPdfTabs?.[pdfPaneAt(event)]?.panel;
+    const destination = pdfPaneAt(event);
+    if (!splitPdfTabs) {
+      if (destination < 0) delete $('pdfTabPanels').dataset.tabDropSide;
+      else $('pdfTabPanels').dataset.tabDropSide = destination === 0 ? 'left' : 'right';
+      return;
+    }
+    const target = splitPdfTabs[destination]?.panel;
     if (target === drag.target) return;
     drag.target?.classList.remove('tabDropTarget');
     target?.classList.add('tabDropTarget');

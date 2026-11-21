@@ -52,7 +52,7 @@ func TestNativeUI(t *testing.T) {
 	})
 	os.MkdirAll(profile, 0700)
 	a := &app{token: randomToken(), instanceToken: randomToken()}
-	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.6.3.exe")
+	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.6.4.exe")
 	if err != nil {
 		t.Fatal(err)
 	}

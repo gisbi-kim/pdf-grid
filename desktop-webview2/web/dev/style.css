@@ -92,8 +92,21 @@
 .splitView > .splitLeft { grid-column:1; grid-row:1; }
 .splitView > .splitRight { grid-column:3; grid-row:1; }
 .splitView > .pdfTabPanel[data-active=true] { outline:1px solid #71874e; outline-offset:-1px; }
-.splitView.tabDragActive { cursor:grabbing; }
-.splitView.tabDragActive iframe { pointer-events:none; }
+#pdfTabPanels.tabDragActive { cursor:grabbing; }
+#pdfTabPanels.tabDragActive iframe { pointer-events:none; }
+#pdfTabPanels[data-tab-drop-side]::after {
+  content:'';
+  position:absolute;
+  inset-block:0;
+  width:50%;
+  box-sizing:border-box;
+  border:2px solid #c7f481;
+  background:#c7f48116;
+  pointer-events:none;
+  z-index:1;
+}
+#pdfTabPanels[data-tab-drop-side=left]::after { left:0; }
+#pdfTabPanels[data-tab-drop-side=right]::after { right:0; }
 .splitView > .pdfTabPanel.tabDropTarget { outline:2px solid #c7f481; outline-offset:-2px; }
 #pdfSplitDivider { grid-column:2; grid-row:1; cursor:col-resize; touch-action:none; background:#303a42; position:relative; }
 #pdfSplitDivider::after { content:''; position:absolute; width:2px; height:38px; left:2px; top:calc(50% - 19px); background:#7b8c75; border-radius:2px; }
