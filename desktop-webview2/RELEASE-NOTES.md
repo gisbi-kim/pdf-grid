@@ -1,5 +1,7 @@
 PDF Grid 1.6.2 for Windows 10/11 x64
 
+- Matched the update icon to the size and colors of the toolbar controls next to GitHub.
+
 - Grouped PDF merge and split under ‘유틸’ on the right side of the ribbon.
 - The PDF open dialog focuses the file name field so a full path can be pasted and opened with Enter.
 - In side-by-side view, dropping a PDF opens it in the pane where it was dropped and keeps the previous PDF available in its tab.

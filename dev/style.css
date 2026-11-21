@@ -45,6 +45,17 @@
 .appLinks a { text-decoration:none; font-size:12px; padding:5px 9px; border:1px solid #404952; border-radius:8px; white-space:nowrap; }
 .appLinks a:hover { background:#3b454f; }
 .appLinks #devStatus { color:#c7f481; border-color:#607647; }
+.appLinks #checkForUpdates {
+  display:grid;
+  place-items:center;
+  align-self:stretch;
+  width:28px;
+  padding:0;
+  color:#c7f481;
+  border-color:#404952;
+}
+.appLinks #checkForUpdates svg { width:16px; height:16px; }
+.appLinks #checkForUpdates:focus-visible { outline-offset:1px; }
 #versionStatus { position:fixed; z-index:100; width:max-content; max-width:calc(100vw - 16px); padding:10px 14px; border:1px solid #607647; border-radius:8px; background:#252f28; color:#e5e9ed; font-size:13px; box-shadow:0 6px 24px #0008; }
 #versionStatus[hidden], .appLinks [hidden] { display:none; }
 @media(max-width:680px) {
