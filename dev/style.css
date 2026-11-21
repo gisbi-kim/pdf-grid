@@ -86,11 +86,9 @@
 .tabMenuStatus { position:fixed; z-index:1101; left:50%; bottom:65px; transform:translateX(-50%); max-width:calc(100vw - 24px); padding:10px 15px; border:1px solid #607647; border-radius:8px; background:#252f28; color:#e5e9ed; box-shadow:0 5px 20px #0005; font-size:13px; pointer-events:none; }
 
 #reopenPDFTab { font-size:17px; line-height:18px; }
-.documentTabs #toggleSplitView { border:1px solid #45513c; font-size:11px; }
+.documentTabs #toggleSplitView, .documentTabs #toggleTripleView { border:1px solid #45513c; font-size:11px; }
 #pdfTabPanels.splitView { display:grid; min-width:0; }
-.splitView > .pdfTabPanel[aria-hidden=false] { display:flex; flex-direction:column; position:relative; inset:auto; min-width:0; min-height:0; height:100%; }
-.splitView > .splitLeft { grid-column:1; grid-row:1; }
-.splitView > .splitRight { grid-column:3; grid-row:1; }
+.splitView > .pdfTabPanel[aria-hidden=false] { display:flex; flex-direction:column; grid-row:1; position:relative; inset:auto; min-width:0; min-height:0; height:100%; }
 .splitView > .pdfTabPanel[data-active=true] { outline:1px solid #71874e; outline-offset:-1px; }
 #pdfTabPanels.tabDragActive { cursor:grabbing; }
 #pdfTabPanels.tabDragActive iframe { pointer-events:none; }
@@ -108,9 +106,9 @@
 #pdfTabPanels[data-tab-drop-side=left]::after { left:0; }
 #pdfTabPanels[data-tab-drop-side=right]::after { right:0; }
 .splitView > .pdfTabPanel.tabDropTarget { outline:2px solid #c7f481; outline-offset:-2px; }
-#pdfSplitDivider { grid-column:2; grid-row:1; cursor:col-resize; touch-action:none; background:#303a42; position:relative; }
-#pdfSplitDivider::after { content:''; position:absolute; width:2px; height:38px; left:2px; top:calc(50% - 19px); background:#7b8c75; border-radius:2px; }
-#pdfSplitDivider:hover,#pdfSplitDivider:focus-visible { background:#485a3d; outline:0; }
+.pdfSplitDivider { grid-row:1; cursor:col-resize; touch-action:none; background:#303a42; position:relative; }
+.pdfSplitDivider::after { content:''; position:absolute; width:2px; height:38px; left:2px; top:calc(50% - 19px); background:#7b8c75; border-radius:2px; }
+.pdfSplitDivider:hover,.pdfSplitDivider:focus-visible { background:#485a3d; outline:0; }
 
 .pdfPaneHeading { display:none; }
 .splitView .pdfPaneHeading { display:block; flex:0 0 27px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:5px 10px; font-size:12px; color:#aab8a5; background:#20272c; border-bottom:1px solid #3c4840; cursor:pointer; }

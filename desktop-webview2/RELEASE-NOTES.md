@@ -1,4 +1,6 @@
-PDF Grid 1.6.4 for Windows 10/11 x64
+PDF Grid 1.7.0 for Windows 10/11 x64
+
+- Open at least three PDFs and choose **3개 나란히** to view three documents. Each pane scrolls and zooms independently. Drag tabs onto any pane and use the two dividers to resize them. Restarting the app restores all three panes and their widths. Closing a visible PDF leaves the other two side by side.
 
 - Drag another PDF tab to either half of the viewer to start side-by-side view. The dragged PDF opens on that side and the current PDF moves to the opposite pane.
 

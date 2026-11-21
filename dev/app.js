@@ -5,7 +5,7 @@ let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab 
 const MAX_BYTES = 100 * 1024 * 1024;
 const macDesktop = window.pdfGridDesktop?.platform === 'darwin';
 const tabShortcutLabel = macDesktop ? '⌘' : 'Ctrl+';
-const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.6.4' : '../viewer/?v=1.6.4';
+const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.7.0' : '../viewer/?v=1.7.0';
 function addGridSteppers(view) {
   const frame = view.defaultView;
   const columns = view.getElementById('cols');
@@ -118,12 +118,21 @@ let activePdfTab;
 let nextPdfTab = 0;
 const closedPdfTabs = [];
 let reopeningPdf = false, splitPdfTabs = null, splitRatio = 50, layoutGeneration = 0, pendingPdfLayout = Promise.resolve();
+let tripleWidths = Array(3).fill(100 / 3);
 let pdfTabDrag, suppressPdfTabClick;
-const splitDivider = document.createElement('div');
-splitDivider.id = 'pdfSplitDivider'; splitDivider.hidden = true; splitDivider.tabIndex = 0;
-splitDivider.setAttribute('role','separator'); splitDivider.setAttribute('aria-label','두 PDF 사이 폭 조절'); splitDivider.setAttribute('aria-orientation','vertical');
-splitDivider.setAttribute('aria-valuemin','25'); splitDivider.setAttribute('aria-valuemax','75');
-$('pdfTabPanels').append(splitDivider);
+const splitDividerWidth = 7;
+const splitDividers = ['pdfSplitDivider', 'pdfSplitDivider2'].map((id, index) => {
+  const divider = document.createElement('div');
+  divider.id = id;
+  divider.className = 'pdfSplitDivider';
+  divider.hidden = true;
+  divider.tabIndex = 0;
+  divider.style.gridColumn = String(2 * index + 2);
+  divider.setAttribute('role', 'separator');
+  divider.setAttribute('aria-orientation', 'vertical');
+  $('pdfTabPanels').append(divider);
+  return divider;
+});
 window.PDFGridReload.setup(() => activePdfTab, () => busy);
 function bindTabShortcuts(view) {
   // Chrome reserves Ctrl+W for the browser tab; only the installed host owns it.
@@ -155,9 +164,14 @@ function workspaceControls() {
   $('reopenPDFTab').disabled = reopeningPdf || !closedPdfTabs.length;
   if(reopeningPdf)$('reopenPDFTab').setAttribute('aria-busy','true');else $('reopenPDFTab').removeAttribute('aria-busy');
   $('reopenPDFTab').title = '닫은 탭 복원' + (window.pdfGridDesktop ? ' (' + tabShortcutLabel + 'Shift+T)' : '');
-  $('toggleSplitView').disabled = !splitPdfTabs && readablePdfTabs().length < 2;
+  const count = readablePdfTabs().length;
+  const triple = splitPdfTabs?.length === 3;
+  $('toggleSplitView').disabled = !splitPdfTabs && count < 2;
   $('toggleSplitView').setAttribute('aria-pressed', String(!!splitPdfTabs));
   $('toggleSplitView').textContent = splitPdfTabs ? '나란히 끄기' : '나란히 보기';
+  $('toggleTripleView').disabled = count < 3 && !triple;
+  $('toggleTripleView').textContent = triple ? '2개로' : '3개 나란히';
+  $('toggleTripleView').title = triple ? 'PDF 두 개만 나란히 보기' : 'PDF 세 개 나란히 보기';
 }
 function canDragPdfTab(tab) {
   return hasPdfDocument(tab) && (!!splitPdfTabs || tab !== activePdfTab && hasPdfDocument(activePdfTab));
@@ -165,6 +179,8 @@ function canDragPdfTab(tab) {
 function renderPdfTabs() {
   if (pdfTabDrag && (pdfTabDrag.layout !== splitPdfTabs || pdfTabDrag.tab.removed ||
       (!splitPdfTabs && pdfTabDrag.previousActive !== activePdfTab))) finishPdfTabDrag();
+  const triple = splitPdfTabs?.length === 3;
+  const sides = triple ? ['왼쪽','가운데','오른쪽'] : ['왼쪽','오른쪽'];
   for (const item of pdfTabs) {
     const selected = item === activePdfTab, pane = splitPdfTabs?.indexOf(item) ?? -1;
     const visible = splitPdfTabs ? pane >= 0 : selected;
@@ -173,13 +189,26 @@ function renderPdfTabs() {
     item.button.toggleAttribute('data-pane-draggable', canDragPdfTab(item));
     item.panel.setAttribute('aria-hidden', !visible);
     item.panel.dataset.active = String(selected);
-    item.panel.classList.toggle('splitLeft', pane === 0); item.panel.classList.toggle('splitRight', pane === 1);
-    item.paneName.textContent = (pane === 0 ? '왼쪽 · ' : '오른쪽 · ') + (item.name || '새 탭');
+    item.panel.classList.toggle('splitLeft', pane === 0);
+    item.panel.classList.toggle('splitMiddle', triple && pane === 1);
+    item.panel.classList.toggle('splitRight', pane === sides.length - 1);
+    item.panel.style.gridColumn = pane >= 0 ? String(2 * pane + 1) : '';
+    item.paneName.textContent = (pane >= 0 ? sides[pane] + ' · ' : '') + (item.name || '새 탭');
     item.panel.inert = !visible;
   }
   $('pdfTabPanels').classList.toggle('splitView', !!splitPdfTabs);
-  $('pdfTabPanels').style.gridTemplateColumns = splitPdfTabs ? `${splitRatio}fr 7px ${100-splitRatio}fr` : '';
-  splitDivider.hidden = !splitPdfTabs; splitDivider.setAttribute('aria-valuenow',String(Math.round(splitRatio)));
+  const widths = splitPdfTabs ? splitPaneWidths() : [];
+  $('pdfTabPanels').style.gridTemplateColumns = widths.map(width => `minmax(0, ${width}fr)`).join(` ${splitDividerWidth}px `);
+  for (const [index, divider] of splitDividers.entries()) {
+    divider.hidden = index >= widths.length - 1;
+    if (divider.hidden) continue;
+    const { boundary, min, max } = splitDividerBounds(index);
+    const label = index === 0 ? '왼쪽과 가운데 PDF 사이 폭 조절' : '가운데와 오른쪽 PDF 사이 폭 조절';
+    divider.setAttribute('aria-label', triple ? label : '두 PDF 사이 폭 조절');
+    divider.setAttribute('aria-valuemin', String(Math.round(min)));
+    divider.setAttribute('aria-valuemax', String(Math.round(max)));
+    divider.setAttribute('aria-valuenow', String(Math.round(boundary)));
+  }
   workspaceControls();
 }
 function capturePdfViews() {
@@ -214,14 +243,33 @@ function activatePdfTab(tab, focus = false, destination = null) {
 function canSplitPdf(tab) { return hasPdfDocument(tab) && readablePdfTabs().length >= 2; }
 async function openSplitPdf(tab = activePdfTab) {
   if (busy || readablePdfTabs().length < 2) return;
+  if (splitPdfTabs?.length === 3) {
+    if (hasPdfDocument(tab)) await activatePdfTab(tab);
+    return;
+  }
   if (!canSplitPdf(tab)) tab = readablePdfTabs()[0];
   const left = hasPdfDocument(activePdfTab) ? activePdfTab : readablePdfTabs()[0];
   const right = tab !== left ? tab : readablePdfTabs().find(other => other !== left);
-  await showSplitPdfTabs(left, right, left);
+  await showSplitPdfTabs([left,right], left);
 }
-async function showSplitPdfTabs(left, right, active) {
-  await relayoutPdfPanels(() => { splitPdfTabs = [left,right]; activePdfTab = active; });
-  await Promise.all([showPdfTab(left), showPdfTab(right)]);
+async function showSplitPdfTabs(panes, active) {
+  await relayoutPdfPanels(() => { splitPdfTabs = panes; activePdfTab = active; });
+  await Promise.all(panes.filter(tab => splitPdfTabs?.includes(tab)).map(showPdfTab));
+}
+async function toggleTripleSplit() {
+  if (busy) return;
+  if (splitPdfTabs?.length === 3) {
+    // Keep the active PDF and the first other pane when collapsing to two.
+    const removed = activePdfTab === splitPdfTabs[2] ? 1 : 2;
+    await showSplitPdfTabs(splitPdfTabs.filter((_, index) => index !== removed), activePdfTab);
+    return;
+  }
+  const documents = readablePdfTabs();
+  if (documents.length < 3) return;
+  const active = hasPdfDocument(activePdfTab) ? activePdfTab : documents[0];
+  const current = splitPdfTabs || [active];
+  const panes = [...current, ...documents.filter(tab => !current.includes(tab))].slice(0, 3);
+  await showSplitPdfTabs(panes, active);
 }
 async function closeSplitPdf() {
   if (splitPdfTabs) await relayoutPdfPanels(() => { splitPdfTabs = null; });
@@ -245,13 +293,18 @@ function closePdfTab(tab, remember = true) {
   }
   const views = capturePdfViews(), resizing = !!splitPdfTabs?.includes(tab);
   const remove = () => {
-    const index = pdfTabs.indexOf(tab), remaining = splitPdfTabs?.find(other => other !== tab);
+    const index = pdfTabs.indexOf(tab);
+    const pane = splitPdfTabs?.indexOf(tab);
+    const remaining = resizing ? splitPdfTabs.filter(other => other !== tab) : [];
     tab.removed = true;
     tab.resolveClosed(false);
     pdfTabs.splice(index,1); tab.item.remove(); tab.panel.remove(); tab.resolveMount?.();
     $('pdfTabList').style.setProperty('--pdf-tab-count',pdfTabs.length);
-    if (resizing) splitPdfTabs = null;
-    if (activePdfTab === tab) activePdfTab = resizing ? remaining : pdfTabs[index] || pdfTabs[index-1] || createPdfTab();
+    if (resizing) splitPdfTabs = remaining.length === 2 ? remaining : null;
+    if (activePdfTab === tab) {
+      activePdfTab = resizing ? remaining[Math.min(pane, remaining.length - 1)] :
+        pdfTabs[index] || pdfTabs[index-1] || createPdfTab();
+    }
     if (!preserveSnapshot) window.PDFGridSession.drop(tab.sessionID);
   };
   if (resizing) void relayoutPdfPanels(remove, views); else { remove(); renderPdfTabs(); }
@@ -340,18 +393,60 @@ async function restoreClosedPdf(tab, record) {
 window.PDFGridTabs = {reopen:reopenClosedPdfTab,canReopen:()=>!!closedPdfTabs.length&&!reopeningPdf,split:openSplitPdf,canSplit:canSplitPdf,closeSplit:closeSplitPdf};
 $('reopenPDFTab').onclick = () => void reopenClosedPdfTab();
 $('toggleSplitView').onclick = () => void (splitPdfTabs ? closeSplitPdf() : openSplitPdf());
-let splitDrag = null;
-splitDivider.addEventListener('pointerdown',event=>{
-  if (event.button !== 0 || !splitPdfTabs) return;
-  event.preventDefault(); splitDrag = {id:event.pointerId,views:capturePdfViews()}; splitDivider.setPointerCapture(event.pointerId);
-});
-splitDivider.addEventListener('pointermove',event=>{
-  if (splitDrag?.id !== event.pointerId) return;
-  const rect=$('pdfTabPanels').getBoundingClientRect(), ratio=Math.max(25,Math.min(75,(event.clientX-rect.left)/rect.width*100));
-  void relayoutPdfPanels(()=>{splitRatio=ratio},splitDrag.views);
-});
-for(const type of ['pointerup','pointercancel','lostpointercapture'])splitDivider.addEventListener(type,event=>{if(splitDrag?.id===event.pointerId){splitDrag=null;if(splitDivider.hasPointerCapture(event.pointerId))splitDivider.releasePointerCapture(event.pointerId)}});
-splitDivider.addEventListener('keydown',event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();void relayoutPdfPanels(()=>{splitRatio=Math.max(25,Math.min(75,splitRatio+(event.key==='ArrowLeft'?-5:5)))});}});
+$('toggleTripleView').onclick = () => void toggleTripleSplit();
+function splitPaneWidths() {
+  return splitPdfTabs?.length === 3 ? [...tripleWidths] : [splitRatio, 100 - splitRatio];
+}
+function splitDividerBounds(index) {
+  const widths = splitPaneWidths();
+  const boundary = widths.slice(0, index + 1).reduce((sum, width) => sum + width, 0);
+  const minimumPaneWidth = widths.length === 3 ? 18 : 25;
+  return {
+    widths, boundary,
+    min: boundary - widths[index] + minimumPaneWidth,
+    max: boundary + widths[index + 1] - minimumPaneWidth,
+  };
+}
+function resizeSplitDivider(index, desired, views) {
+  const { widths, boundary, min, max } = splitDividerBounds(index);
+  const delta = Math.max(min, Math.min(max, desired)) - boundary;
+  if (!delta) return;
+  widths[index] += delta;
+  widths[index + 1] -= delta;
+  void relayoutPdfPanels(() => {
+    if (widths.length === 3) tripleWidths = widths;
+    else splitRatio = widths[0];
+  }, views);
+}
+for (const [index, divider] of splitDividers.entries()) {
+  let drag;
+  divider.addEventListener('pointerdown', event => {
+    if (event.button !== 0 || divider.hidden) return;
+    event.preventDefault();
+    drag = {id:event.pointerId, layout:splitPdfTabs, views:capturePdfViews()};
+    divider.setPointerCapture(event.pointerId);
+  });
+  divider.addEventListener('pointermove', event => {
+    if (drag?.id !== event.pointerId || drag.layout !== splitPdfTabs) return;
+    const rect = $('pdfTabPanels').getBoundingClientRect();
+    const width = rect.width - splitDividerWidth * (splitPdfTabs.length - 1);
+    const x = event.clientX - rect.left - splitDividerWidth * (index + 0.5);
+    if (width > 0) resizeSplitDivider(index, x / width * 100, drag.views);
+  });
+  for (const type of ['pointerup','pointercancel','lostpointercapture']) {
+    divider.addEventListener(type, event => {
+      if (drag?.id !== event.pointerId) return;
+      drag = null;
+      if (divider.hasPointerCapture(event.pointerId)) divider.releasePointerCapture(event.pointerId);
+    });
+  }
+  divider.addEventListener('keydown', event => {
+    if (divider.hidden || !['ArrowLeft','ArrowRight'].includes(event.key)) return;
+    event.preventDefault();
+    const { boundary } = splitDividerBounds(index);
+    resizeSplitDivider(index, boundary + (event.key === 'ArrowLeft' ? -5 : 5));
+  });
+}
 
 function pdfPaneAt(event) {
   const containsPointer = rect => event.clientX >= rect.left && event.clientX < rect.right &&
@@ -377,7 +472,7 @@ function finishPdfTabDrag(event) {
   } else {
     const current = activePdfTab;
     const [left, right] = destination === 0 ? [drag.tab, current] : [current, drag.tab];
-    void showSplitPdfTabs(left, right, drag.tab);
+    void showSplitPdfTabs([left,right], drag.tab);
     drag.tab.button.focus({preventScroll:true});
   }
 }
@@ -790,7 +885,15 @@ const savedWorkspace = session.start({
   add: createPdfTab,
   closedIds: () => closedPdfTabs.map(record => record.saved?.id),
   settle: () => pendingPdfLayout,
-  layout: () => splitPdfTabs ? {left:splitPdfTabs[0].sessionID,right:splitPdfTabs[1].sessionID,ratio:splitRatio} : null,
+  layout: () => {
+    if (!splitPdfTabs) return null;
+    const layout = {left:splitPdfTabs[0].sessionID, right:splitPdfTabs.at(-1).sessionID, ratio:splitRatio};
+    if (splitPdfTabs.length === 3) {
+      layout.middle = splitPdfTabs[1].sessionID;
+      layout.widths = tripleWidths;
+    }
+    return layout;
+  },
 });
 if (startingNative) {
   renderPdfTabs();
@@ -825,10 +928,15 @@ if (startingNative) {
       const left = layout && savedTab(layout.left), right = layout && savedTab(layout.right);
       if (left && right && left !== right) {
         splitRatio = Math.max(25, Math.min(75, Number(layout.ratio) || 50));
-        splitPdfTabs = [left,right];
+        const middle = layout.middle && savedTab(layout.middle);
+        splitPdfTabs = middle && middle !== left && middle !== right ? [left,middle,right] : [left,right];
+        const widths = layout.widths;
+        if (splitPdfTabs.length === 3 && Array.isArray(widths) && widths.length === 3 &&
+            widths.every(width => Number.isFinite(width) && width >= 18 - 1e-6) &&
+            Math.abs(widths.reduce((sum, width) => sum + width, 0) - 100) < 1e-6) tripleWidths = widths;
         activePdfTab = splitPdfTabs.includes(active) ? active : left;
         renderPdfTabs();
-        await Promise.all([showPdfTab(left), showPdfTab(right)]);
+        await Promise.all(splitPdfTabs.map(showPdfTab));
       } else {
         await activatePdfTab(active || createPdfTab());
       }
