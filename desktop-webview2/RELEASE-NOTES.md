@@ -1,5 +1,9 @@
 PDF Grid 1.6.2 for Windows 10/11 x64
 
+- Grouped PDF merge and split under ‘유틸’ on the right side of the ribbon.
+- The PDF open dialog focuses the file name field so a full path can be pasted and opened with Enter.
+- In side-by-side view, dropping a PDF opens it in the pane where it was dropped and keeps the previous PDF available in its tab.
+
 - Close the active tab immediately with Ctrl+W or the × button while opening, refreshing or restoring a PDF. Results from closed tabs are ignored.
 
 - Open a PDF passed to the app before reading old tabs. Saved background tabs display their titles and restore their reading position on selection. Starting the app directly loads only the last visible tab or split pair.
