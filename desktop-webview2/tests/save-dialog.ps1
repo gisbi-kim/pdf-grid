@@ -5,10 +5,17 @@ using System;
 using System.Text;
 using System.Runtime.InteropServices;
 public class SaveDialog {
+ [StructLayout(LayoutKind.Sequential)]
+ struct GuiThreadInfo {
+  public int size, flags;
+  public IntPtr active, focus, capture, menu, moveSize, caret;
+  public int left, top, right, bottom;
+ }
  public delegate bool EnumProc(IntPtr h, IntPtr l);
  [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc p,IntPtr l);
  [DllImport("user32.dll")] public static extern bool EnumChildWindows(IntPtr h,EnumProc p,IntPtr l);
  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h,out uint p);
+ [DllImport("user32.dll")] static extern bool GetGUIThreadInfo(uint id,ref GuiThreadInfo info);
  [DllImport("user32.dll",CharSet=CharSet.Unicode)] public static extern int GetWindowText(IntPtr h,StringBuilder s,int n);
  [DllImport("user32.dll",CharSet=CharSet.Unicode)] public static extern int GetClassName(IntPtr h,StringBuilder s,int n);
  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
@@ -21,6 +28,7 @@ public class SaveDialog {
  [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h,int m,IntPtr w,IntPtr l);
  public static string Text(IntPtr h){var s=new StringBuilder(4096);GetWindowText(h,s,4096);return s.ToString();}
  public static string ControlText(IntPtr h){var s=new StringBuilder(4096);SendMessage(h,0xD,new IntPtr(s.Capacity),s);return s.ToString();}
+ public static IntPtr Focus(IntPtr h){uint pid;var info=new GuiThreadInfo{size=Marshal.SizeOf(typeof(GuiThreadInfo))};return GetGUIThreadInfo(GetWindowThreadProcessId(h,out pid),ref info)?info.focus:IntPtr.Zero;}
  public static string Class(IntPtr h){var s=new StringBuilder(256);GetClassName(h,s,256);return s.ToString();}
  public static IntPtr Find(int pid){IntPtr found=IntPtr.Zero;EnumWindows((h,l)=>{uint p;GetWindowThreadProcessId(h,out p);if(p==pid && Class(h)=="#32770" && GetDlgItem(h,1)!=IntPtr.Zero){found=h;return false;}return true;},IntPtr.Zero);return found;}
  public static IntPtr Edit(IntPtr h){IntPtr edit=IntPtr.Zero;EnumChildWindows(h,(c,l)=>{if(Class(c)=="Edit" && IsWindowVisible(c) && IsWindowEnabled(c)){Console.WriteLine("Edit ID="+GetDlgCtrlID(c)+" parent="+Class(GetParent(c))+" text="+ControlText(c));if(Class(GetParent(c))=="ComboBox" || GetDlgCtrlID(c)==1152)edit=c;}return true;},IntPtr.Zero);return edit;}
@@ -34,13 +42,20 @@ for($n=0;$n -lt 300;$n++){
   $edit=[SaveDialog]::Edit($dialog)
   if($OpenFile -and $edit -ne [IntPtr]::Zero){
    if(!(Test-Path -LiteralPath $Destination)){throw 'Open fixture missing'}
+   for($ready=0;$ready -lt 20 -and [SaveDialog]::Focus($dialog) -ne $edit;$ready++){
+    Start-Sleep -Milliseconds 100
+   }
+   if([SaveDialog]::Focus($dialog) -ne $edit){
+    [SaveDialog]::PostMessage([SaveDialog]::GetDlgItem($dialog,2),0xF5,[IntPtr]::Zero,[IntPtr]::Zero)|Out-Null
+    throw 'PDF open dialog did not focus the file name field'
+   }
    # Pasting triggers the shell dialog's filename change notification; WM_SETTEXT
    # changes the visible edit text without reliably updating its internal choice.
    Add-Type -AssemblyName System.Windows.Forms
    [System.Windows.Forms.Clipboard]::SetText($Destination)
    [SaveDialog]::Msg($edit,0xB1,[IntPtr]::Zero,[IntPtr]::new(-1))|Out-Null
    [SaveDialog]::Msg($edit,0x302,[IntPtr]::Zero,[IntPtr]::Zero)|Out-Null
-   [SaveDialog]::PostMessage([SaveDialog]::GetDlgItem($dialog,1),0xF5,[IntPtr]::Zero,[IntPtr]::Zero)|Out-Null
+   [SaveDialog]::PostMessage($edit,0x100,[IntPtr]::new(13),[IntPtr]::new(1))|Out-Null
    for($accepted=0;$accepted -lt 50;$accepted++){
     if(![SaveDialog]::IsWindowVisible($dialog)){Write-Host "Accepted native PDF open: $Destination";exit 0}
     Start-Sleep -Milliseconds 100

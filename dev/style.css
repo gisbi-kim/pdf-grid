@@ -39,7 +39,9 @@
 .pdfTabPanel iframe { display: block; }
 
 /* Shared release/dev and repository controls. */
-.appLinks { display:flex; align-items:center; gap:5px; margin-left:auto; flex:0 0 auto; }
+.pdfUtilities { display:flex; align-items:center; gap:3px; margin-inline-start:auto; padding-inline-start:8px; border-inline-start:1px solid #343a42; }
+#pdfUtilitiesLabel { color:#aab4be; font-size:11px; white-space:nowrap; }
+.appLinks { display:flex; align-items:center; gap:5px; flex:0 0 auto; }
 .appLinks a { text-decoration:none; font-size:12px; padding:5px 9px; border:1px solid #404952; border-radius:8px; white-space:nowrap; }
 .appLinks a:hover { background:#3b454f; }
 .appLinks #devStatus { color:#c7f481; border-color:#607647; }
@@ -50,6 +52,15 @@
   .appRibbon .documentTabs { order:2; flex-basis:100%; margin:0; padding:4px 0 0; border:0; }
   .appRibbon .brand { margin-right:2px; }
   .appRibbon button, .appLinks a { padding:5px; font-size:11px; }
+}
+@media(max-width:440px) {
+  .appLinks { flex-basis:100%; justify-content:flex-end; }
+}
+@media(max-width:360px) {
+  .appRibbon { padding-inline:6px; gap:3px; }
+  .appRibbon .brand { font-size:14px; }
+  .appRibbon button { padding-inline:3px; }
+  .pdfUtilities { padding-inline-start:4px; }
 }
 
 .tabContextMenu { position:fixed; z-index:1100; width:220px; max-width:calc(100vw - 16px); padding:5px; border:1px solid #49545f; border-radius:8px; background:#252c33; box-shadow:0 8px 24px #0006; }

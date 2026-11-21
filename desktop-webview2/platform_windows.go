@@ -439,15 +439,42 @@ func launchUpdateInstaller(target string) error {
 	return cmd.Process.Release()
 }
 
+var focusOpenPDFName = syscall.NewCallback(func(hook, message, _ uintptr, payload uintptr) uintptr {
+	const wmNotify = 0x004e
+	const cdnInitDone = -601
+	const wmNextDlgCtl = 0x0028
+	const cmb13 = 0x047c // File-name combo box.
+	const edt1 = 0x0480  // File-name edit control on older dialogs.
+	type notificationHeader struct {
+		window, id uintptr
+		code       int32
+	}
+	if message != wmNotify || payload == 0 || (*notificationHeader)(unsafe.Pointer(payload)).code != cdnInitDone {
+		return 0
+	}
+	dialog, _, _ := user32.NewProc("GetParent").Call(hook)
+	getItem := user32.NewProc("GetDlgItem")
+	name, _, _ := getItem.Call(dialog, cmb13)
+	if name == 0 {
+		name, _, _ = getItem.Call(dialog, edt1)
+	}
+	if name != 0 {
+		// Queue the focus change so it runs after the dialog initializes its own focus.
+		user32.NewProc("PostMessageW").Call(dialog, wmNextDlgCtl, name, 1)
+	}
+	return 0
+})
+
 // Native picking preserves the original path so F5 can reopen replaced build outputs.
 func chooseOpenPDFs(hwnd uintptr) ([]string, error) {
 	buffer := make([]uint16, 65536)
 	filter := syscall.StringToUTF16("PDF")
 	filter = append(filter, syscall.StringToUTF16("*.pdf")...)
 	filter = append(filter, 0)
-	title, _ := syscall.UTF16PtrFromString("PDF Grid — PDF 열기")
+	title, _ := syscall.UTF16PtrFromString("PDF Grid — PDF 열기 (파일 이름에 전체 경로 입력 가능)")
+	const ofnEnableHook = 0x00000020
 	dialog := openFileName{Owner: hwnd, Filter: &filter[0], FilterIndex: 1, File: &buffer[0], MaxFile: uint32(len(buffer)), Title: title,
-		Flags: 0x00080000 | 0x00001000 | 0x00000800 | 0x00000200 | 0x00000008}
+		Hook: focusOpenPDFName, Flags: 0x00080000 | 0x00001000 | 0x00000800 | 0x00000200 | 0x00000008 | ofnEnableHook}
 	dialog.Size = uint32(unsafe.Sizeof(dialog))
 	ok, _, _ := syscall.NewLazyDLL("comdlg32.dll").NewProc("GetOpenFileNameW").Call(uintptr(unsafe.Pointer(&dialog)))
 	if ok == 0 {
