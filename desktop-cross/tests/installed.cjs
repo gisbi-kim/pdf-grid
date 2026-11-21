@@ -141,25 +141,39 @@ async function main() {
     console.log('Cold-start priority, immediate close during restore, and reopening passed.');
 
     await tab('Paper A.pdf').click();
-    await page.locator('#toggleSplitView').click();
+    const single = page.locator('.pdfTabPanel[aria-hidden="false"]');
     const left = page.locator('.splitLeft');
     const rightPane = page.locator('.splitRight');
     const heading = pane => pane.locator('.pdfPaneHeading').innerText();
-    async function dragTab(name, pane, cancel = false) {
+    async function dragTab(name, pane, { side, cancel = false } = {}) {
       const source = await tab(name).boundingBox();
       const target = await pane.locator('iframe').boundingBox();
+      const fraction = side === 'left' ? 0.25 : side === 'right' ? 0.75 : 0.5;
       await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
       await page.mouse.down();
-      await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 8 });
-      await pane.and(page.locator('.tabDropTarget')).waitFor();
+      await page.mouse.move(target.x + target.width * fraction, target.y + target.height / 2, { steps: 8 });
+      if (side) await page.locator(`#pdfTabPanels[data-tab-drop-side="${side}"]`).waitFor();
+      else await pane.and(page.locator('.tabDropTarget')).waitFor();
       if (cancel) await page.keyboard.press('Escape');
       await page.mouse.up();
-      assert.equal(await page.locator('.tabDropTarget, .tabDragActive, .tabDragSource').count(), 0);
+      assert.equal(await page.locator('.tabDropTarget, .tabDragActive, .tabDragSource, [data-tab-drop-side]').count(), 0);
     }
 
+    await dragTab('논문 B.pdf', single, { side:'left', cancel:true });
+    assert.equal(await page.locator('.splitView').count(), 0);
+    assert.equal(await tab('Paper A.pdf').getAttribute('aria-selected'), 'true');
+    await dragTab('논문 B.pdf', single, { side:'left' });
+    await page.evaluate(() => pendingPdfLayout);
+    assert.equal(await heading(left), '왼쪽 · 논문 B.pdf');
+    assert.equal(await heading(rightPane), '오른쪽 · Paper A.pdf');
+    await page.locator('#toggleSplitView').click();
+    await tab('Paper A.pdf').click();
+    await page.evaluate(() => pendingPdfLayout);
+    await dragTab('논문 B.pdf', single, { side:'right' });
+    await page.evaluate(() => pendingPdfLayout);
     assert.equal(await heading(left), '왼쪽 · Paper A.pdf');
     assert.equal(await heading(rightPane), '오른쪽 · 논문 B.pdf');
-    await dragTab('New PDF.pdf', left, true);
+    await dragTab('New PDF.pdf', left, { cancel:true });
     assert.equal(await heading(left), '왼쪽 · Paper A.pdf');
     assert.equal(await heading(rightPane), '오른쪽 · 논문 B.pdf');
     await dragTab('New PDF.pdf', rightPane);
@@ -184,7 +198,7 @@ async function main() {
     assert.ok(Math.abs(moved.view.top - original.view.top) < 4,
       `Reading position changed from ${original.view.top} to ${moved.view.top}`);
     assert.equal(await page.getByRole('tab').count(), 3);
-    console.log('Drag outside-pane tab, cancel drag, swap visible PDFs, and retain reading position passed.');
+    console.log('Drag to start either side, cancel drag, replace a pane, swap PDFs, and retain reading position passed.');
   } finally {
     await application?.close();
   }
