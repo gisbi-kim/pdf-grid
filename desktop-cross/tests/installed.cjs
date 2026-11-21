@@ -199,6 +199,46 @@ async function main() {
       `Reading position changed from ${original.view.top} to ${moved.view.top}`);
     assert.equal(await page.getByRole('tab').count(), 3);
     console.log('Drag to start either side, cancel drag, replace a pane, swap PDFs, and retain reading position passed.');
+
+    const middle = page.locator('.splitMiddle');
+    const tripleButton = page.locator('#toggleTripleView');
+    const panes = () => Promise.all(['.splitLeft','.splitMiddle','.splitRight'].map(selector => heading(page.locator(selector))));
+    const positions = () => page.getByRole('separator').evaluateAll(dividers => dividers.map(divider => divider.getAttribute('aria-valuenow')));
+    await tripleButton.click();
+    await page.evaluate(() => pendingPdfLayout);
+    assert.deepEqual(await panes(), ['왼쪽 · New PDF.pdf', '가운데 · Paper A.pdf', '오른쪽 · 논문 B.pdf']);
+    assert.equal(await page.getByRole('separator').count(), 2);
+    await dragTab('논문 B.pdf', middle);
+    await page.evaluate(() => pendingPdfLayout);
+    const swapped = ['왼쪽 · New PDF.pdf', '가운데 · 논문 B.pdf', '오른쪽 · Paper A.pdf'];
+    assert.deepEqual(await panes(), swapped);
+
+    const initialDividerPositions = (await positions()).map(Number);
+    await page.locator('#pdfSplitDivider').press('ArrowRight');
+    await page.evaluate(() => pendingPdfLayout);
+    const secondDivider = page.locator('#pdfSplitDivider2');
+    const dividerBox = await secondDivider.boundingBox();
+    await page.mouse.move(dividerBox.x + dividerBox.width / 2, dividerBox.y + dividerBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(dividerBox.x + dividerBox.width / 2 - 40, dividerBox.y + dividerBox.height / 2, { steps:6 });
+    await page.mouse.up();
+    await page.evaluate(() => pendingPdfLayout);
+    const savedDividerPositions = await positions();
+    assert.ok(Number(savedDividerPositions[0]) > initialDividerPositions[0]);
+    assert.ok(Number(savedDividerPositions[1]) < initialDividerPositions[1]);
+    await application.close();
+    await launch();
+    assert.deepEqual(await panes(), swapped);
+    assert.deepEqual(await positions(), savedDividerPositions);
+    assert.equal(await tab('논문 B.pdf').getAttribute('aria-selected'), 'true');
+
+    await page.getByRole('button', { name:'논문 B.pdf 닫기', exact:true }).click();
+    assert.equal(await page.locator('.pdfTabPanel[aria-hidden="false"]').count(), 2);
+    assert.equal(await heading(page.locator('.splitLeft')), swapped[0]);
+    assert.equal(await heading(page.locator('.splitRight')), swapped[2]);
+    assert.equal(await page.getByRole('separator').count(), 1);
+    assert.equal(await page.locator('#toggleTripleView').isDisabled(), true);
+    console.log('Three panes, middle-pane drag, two dividers, restart, and closing one pane passed.');
   } finally {
     await application?.close();
   }

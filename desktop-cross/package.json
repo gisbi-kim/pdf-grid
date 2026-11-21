@@ -2,7 +2,7 @@
   "name": "pdf-grid",
   "productName": "PDF Grid",
   "desktopName": "pdf-grid.desktop",
-  "version": "1.6.4",
+  "version": "1.7.0",
   "description": "Offline PDF Grid viewer, merger and splitter",
   "author": "PDF Grid contributors <gisbi-kim@users.noreply.github.com>",
   "homepage": "https://github.com/gisbi-kim/pdf-grid",

@@ -180,6 +180,18 @@
     original.click();
     dropped.querySelector('button[aria-label$=" 닫기"]').click();
    }
+   document.querySelector('#toggleTripleView').click();
+   await until(()=>document.querySelectorAll('.pdfTabPanel[aria-hidden=false]').length===3);
+   if(document.querySelector('.splitMiddle iframe').contentWindow!==rightPane||
+      document.querySelectorAll('.pdfSplitDivider:not([hidden])').length!==2)throw Error('Three-pane view did not keep both current PDFs');
+   const third=document.querySelector('.splitRight');
+   await until(()=>third.querySelector('iframe')?.contentDocument.querySelector('#stage.ready'));
+   document.getElementById(third.getAttribute('aria-labelledby')).click();
+   third.querySelector('iframe').contentDocument.querySelector('#stage').focus();
+   await nativeTestStage('close-tab');
+   await until(()=>document.querySelectorAll('.pdfTabPanel[aria-hidden=false]').length===2);
+   if(document.querySelector('.splitLeft iframe').contentWindow!==leftPane||
+      document.querySelector('.splitRight iframe').contentWindow!==rightPane)throw Error('Closing the third PDF did not retain the original pair');
    rightPane.document.querySelector('#stage').focus();await nativeTestStage('close-tab');
    await until(()=>!document.querySelector('#pdfTabPanels').classList.contains('splitView'));
    const beforeReopen=document.querySelectorAll('#pdfTabList [role=tab]').length;
