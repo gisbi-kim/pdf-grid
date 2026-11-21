@@ -5,7 +5,7 @@ let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab 
 const MAX_BYTES = 100 * 1024 * 1024;
 const macDesktop = window.pdfGridDesktop?.platform === 'darwin';
 const tabShortcutLabel = macDesktop ? '⌘' : 'Ctrl+';
-const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.6.2-3' : '../viewer/?v=1.6.2-3';
+const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.6.3' : '../viewer/?v=1.6.3';
 function addGridSteppers(view) {
   const frame = view.defaultView;
   const columns = view.getElementById('cols');
@@ -118,6 +118,7 @@ let activePdfTab;
 let nextPdfTab = 0;
 const closedPdfTabs = [];
 let reopeningPdf = false, splitPdfTabs = null, splitRatio = 50, layoutGeneration = 0, pendingPdfLayout = Promise.resolve();
+let pdfTabDrag, suppressPdfTabClick;
 const splitDivider = document.createElement('div');
 splitDivider.id = 'pdfSplitDivider'; splitDivider.hidden = true; splitDivider.tabIndex = 0;
 splitDivider.setAttribute('role','separator'); splitDivider.setAttribute('aria-label','두 PDF 사이 폭 조절'); splitDivider.setAttribute('aria-orientation','vertical');
@@ -159,11 +160,13 @@ function workspaceControls() {
   $('toggleSplitView').textContent = splitPdfTabs ? '나란히 끄기' : '나란히 보기';
 }
 function renderPdfTabs() {
+  if (pdfTabDrag && (pdfTabDrag.layout !== splitPdfTabs || pdfTabDrag.tab.removed)) finishPdfTabDrag();
   for (const item of pdfTabs) {
     const selected = item === activePdfTab, pane = splitPdfTabs?.indexOf(item) ?? -1;
     const visible = splitPdfTabs ? pane >= 0 : selected;
     item.button.setAttribute('aria-selected', selected);
     item.button.tabIndex = selected ? 0 : -1;
+    item.button.toggleAttribute('data-pane-draggable', !!splitPdfTabs && hasPdfDocument(item));
     item.panel.setAttribute('aria-hidden', !visible);
     item.panel.dataset.active = String(selected);
     item.panel.classList.toggle('splitLeft', pane === 0); item.panel.classList.toggle('splitRight', pane === 1);
@@ -189,10 +192,16 @@ function relayoutPdfPanels(change, views = capturePdfViews()) {
   })();
   return pendingPdfLayout;
 }
-function activatePdfTab(tab, focus = false) {
+function activatePdfTab(tab, focus = false, destination = null) {
   if (!pdfTabs.includes(tab)) return;
-  if (splitPdfTabs && !splitPdfTabs.includes(tab)) {
-    void relayoutPdfPanels(() => { splitPdfTabs[splitPdfTabs.indexOf(activePdfTab)] = tab; activePdfTab = tab; });
+  const currentPane = splitPdfTabs?.indexOf(tab);
+  const nextPane = destination ?? (currentPane === -1 ? splitPdfTabs.indexOf(activePdfTab) : currentPane);
+  if (splitPdfTabs && nextPane >= 0 && nextPane !== currentPane) {
+    void relayoutPdfPanels(() => {
+      if (currentPane >= 0) splitPdfTabs[currentPane] = splitPdfTabs[nextPane];
+      splitPdfTabs[nextPane] = tab;
+      activePdfTab = tab;
+    });
   } else { activePdfTab = tab; renderPdfTabs(); }
   if (focus) tab.button.focus();
   window.PDFGridSession.changed();
@@ -337,6 +346,66 @@ splitDivider.addEventListener('pointermove',event=>{
 for(const type of ['pointerup','pointercancel','lostpointercapture'])splitDivider.addEventListener(type,event=>{if(splitDrag?.id===event.pointerId){splitDrag=null;if(splitDivider.hasPointerCapture(event.pointerId))splitDivider.releasePointerCapture(event.pointerId)}});
 splitDivider.addEventListener('keydown',event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();void relayoutPdfPanels(()=>{splitRatio=Math.max(25,Math.min(75,splitRatio+(event.key==='ArrowLeft'?-5:5)))});}});
 
+function pdfPaneAt(event) {
+  return splitPdfTabs?.findIndex(tab => {
+    const rect = tab.panel.getBoundingClientRect();
+    return event.clientX >= rect.left && event.clientX < rect.right &&
+      event.clientY >= rect.top && event.clientY < rect.bottom;
+  }) ?? -1;
+}
+function finishPdfTabDrag(event) {
+  const drag = pdfTabDrag;
+  if (!drag) return;
+  const destination = event && drag.moved && drag.layout === splitPdfTabs ? pdfPaneAt(event) : -1;
+  pdfTabDrag = null;
+  drag.tab.item.classList.remove('tabDragSource');
+  drag.target?.classList.remove('tabDropTarget');
+  $('pdfTabPanels').classList.remove('tabDragActive');
+  if (drag.tab.button.hasPointerCapture(drag.pointerId)) drag.tab.button.releasePointerCapture(drag.pointerId);
+  if (destination >= 0) void activatePdfTab(drag.tab, true, destination);
+}
+function bindPdfTabDrag(tab) {
+  const button = tab.button;
+  button.addEventListener('pointerdown', event => {
+    suppressPdfTabClick = null;
+    if (pdfTabDrag || !splitPdfTabs || busy || event.button !== 0 ||
+        event.pointerType === 'touch' || !hasPdfDocument(tab)) return;
+    pdfTabDrag = {tab, layout:splitPdfTabs, pointerId:event.pointerId, x:event.clientX, y:event.clientY};
+    button.setPointerCapture(event.pointerId);
+  });
+  button.addEventListener('pointermove', event => {
+    const drag = pdfTabDrag;
+    if (drag?.tab !== tab || drag.pointerId !== event.pointerId) return;
+    if (!drag.moved) {
+      if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 6) return;
+      drag.moved = true;
+      suppressPdfTabClick = tab;
+      tab.item.classList.add('tabDragSource');
+      $('pdfTabPanels').classList.add('tabDragActive');
+    }
+    const target = splitPdfTabs?.[pdfPaneAt(event)]?.panel;
+    if (target === drag.target) return;
+    drag.target?.classList.remove('tabDropTarget');
+    target?.classList.add('tabDropTarget');
+    drag.target = target;
+  });
+  button.addEventListener('pointerup', event => {
+    if (pdfTabDrag?.pointerId === event.pointerId) finishPdfTabDrag(event);
+  });
+  for (const type of ['pointercancel', 'lostpointercapture']) {
+    button.addEventListener(type, event => {
+      if (pdfTabDrag?.pointerId === event.pointerId) finishPdfTabDrag();
+    });
+  }
+}
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && pdfTabDrag?.moved) {
+    event.preventDefault();
+    finishPdfTabDrag();
+  }
+}, true);
+window.addEventListener('blur', () => finishPdfTabDrag());
+
 function createPdfTab(saved = null) {
   const id = ++nextPdfTab;
   const tab = {
@@ -365,7 +434,14 @@ function createPdfTab(saved = null) {
   tab.button.id = 'pdf-tab-' + id;
   tab.button.setAttribute('role', 'tab');
   tab.button.setAttribute('aria-controls', tab.panel.id);
-  tab.button.onclick = () => activatePdfTab(tab, true);
+  tab.button.onclick = event => {
+    if (event.detail && suppressPdfTabClick === tab) {
+      suppressPdfTabClick = null;
+      return;
+    }
+    void activatePdfTab(tab, true);
+  };
+  bindPdfTabDrag(tab);
   window.PDFGridTabMenu.attach(tab);
   tab.reload.type = 'button';
   tab.reload.className = 'pdfTabReload';
@@ -516,6 +592,7 @@ window.openPdfTabs = async (files, dropFrame) => {
 function message(text, error = false) { $('feedback').textContent = text; $('feedback').classList.toggle('error', error); }
 function clearResults() { outputURLs.forEach(url => URL.revokeObjectURL(url)); outputURLs = []; outputs = []; $('results').hidden = true; $('resultList').replaceChildren(); }
 function setTab(name) {
+  if (name !== 'viewer') finishPdfTabDrag();
   activeTab = name;
   document.querySelector('.documentTabs').hidden = name !== 'viewer';
   for (const tab of document.querySelectorAll('[data-tab]')) tab.setAttribute('aria-pressed', String(tab.dataset.tab === name));

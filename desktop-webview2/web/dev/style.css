@@ -32,6 +32,9 @@
 @media (prefers-reduced-motion: reduce) { .pdfTabReload[aria-busy=true] svg { animation: none; } }
 @container (max-width: 50px) { .pdfTab button:not([role=tab]) { display: none; } }
 .pdfTab [aria-selected=true] { color: #c7f481; }
+.pdfTab [data-pane-draggable] { cursor:grab; }
+.pdfTab.tabDragSource [role=tab] { cursor:grabbing; }
+.pdfTab.tabDragSource { border-color:#a1c773; }
 #addPDFTab { font-size: 17px; line-height: 18px; }
 #pdfTabPanels { position: relative; flex: 1; min-height: 0; }
 .pdfTabPanel { position: absolute; inset: 0; }
@@ -89,6 +92,9 @@
 .splitView > .splitLeft { grid-column:1; grid-row:1; }
 .splitView > .splitRight { grid-column:3; grid-row:1; }
 .splitView > .pdfTabPanel[data-active=true] { outline:1px solid #71874e; outline-offset:-1px; }
+.splitView.tabDragActive { cursor:grabbing; }
+.splitView.tabDragActive iframe { pointer-events:none; }
+.splitView > .pdfTabPanel.tabDropTarget { outline:2px solid #c7f481; outline-offset:-2px; }
 #pdfSplitDivider { grid-column:2; grid-row:1; cursor:col-resize; touch-action:none; background:#303a42; position:relative; }
 #pdfSplitDivider::after { content:''; position:absolute; width:2px; height:38px; left:2px; top:calc(50% - 19px); background:#7b8c75; border-radius:2px; }
 #pdfSplitDivider:hover,#pdfSplitDivider:focus-visible { background:#485a3d; outline:0; }
@@ -96,4 +102,5 @@
 .pdfPaneHeading { display:none; }
 .splitView .pdfPaneHeading { display:block; flex:0 0 27px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:5px 10px; font-size:12px; color:#aab8a5; background:#20272c; border-bottom:1px solid #3c4840; cursor:pointer; }
 .splitView .pdfTabPanel[data-active=true] .pdfPaneHeading { color:#d0efa7; background:#29382a; }
+.splitView > .pdfTabPanel.tabDropTarget .pdfPaneHeading { background:#435739; color:#edf9df; }
 .splitView .pdfTabPanel iframe { flex:1 1 0; min-height:0; height:0; }

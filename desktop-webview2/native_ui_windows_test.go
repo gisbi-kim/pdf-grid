@@ -52,7 +52,7 @@ func TestNativeUI(t *testing.T) {
 	})
 	os.MkdirAll(profile, 0700)
 	a := &app{token: randomToken(), instanceToken: randomToken()}
-	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.6.2.exe")
+	setupBytes, err := os.ReadFile("PDF-Grid-Desktop-Setup-1.6.3.exe")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,6 +144,33 @@ func TestNativeUI(t *testing.T) {
 			}
 			if stage == "ready" {
 				t.Logf("Native viewer fully loaded: %s (CI host, not an Electron comparison)", time.Since(started))
+				return nil
+			}
+			if coordinates, ok := strings.CutPrefix(stage, "drag-pane-tab:"); ok {
+				var start, end windowPoint
+				if _, err := fmt.Sscanf(coordinates, "%d,%d,%d,%d", &start.X, &start.Y, &end.X, &end.Y); err != nil {
+					return err
+				}
+				w.Dispatch(func() {
+					hwnd := uintptr(w.Window())
+					user32.NewProc("SetForegroundWindow").Call(hwnd)
+					clientToScreen := user32.NewProc("ClientToScreen")
+					clientToScreen.Call(hwnd, uintptr(unsafe.Pointer(&start)))
+					clientToScreen.Call(hwnd, uintptr(unsafe.Pointer(&end)))
+					go func() {
+						move := user32.NewProc("SetCursorPos")
+						button := user32.NewProc("mouse_event")
+						move.Call(uintptr(start.X), uintptr(start.Y))
+						time.Sleep(40 * time.Millisecond)
+						button.Call(0x02, 0, 0, 0, 0)
+						for step := int32(1); step <= 8; step++ {
+							time.Sleep(35 * time.Millisecond)
+							move.Call(uintptr(start.X+(end.X-start.X)*step/8), uintptr(start.Y+(end.Y-start.Y)*step/8))
+						}
+						time.Sleep(35 * time.Millisecond)
+						button.Call(0x04, 0, 0, 0, 0)
+					}()
+				})
 				return nil
 			}
 			if stage == "close-tab" || stage == "reopen-tab" {

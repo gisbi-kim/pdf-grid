@@ -1,4 +1,6 @@
-PDF Grid 1.6.2 for Windows 10/11 x64
+PDF Grid 1.6.3 for Windows 10/11 x64
+
+- Drag a PDF tab title onto either side of the split view. The destination pane highlights during the drag. Dragging one visible PDF onto the other pane swaps them and preserves each document's reading position.
 
 - Matched the update icon to the size and colors of the toolbar controls next to GitHub.
 

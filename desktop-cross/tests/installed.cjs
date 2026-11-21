@@ -139,6 +139,50 @@ async function main() {
     assert.equal(await page.locator('.pdfTabPanel iframe').count(), 3);
     assert.equal(await tab('Paper A.pdf').count(), 1);
     console.log('Cold-start priority, immediate close during restore, and reopening passed.');
+
+    await tab('Paper A.pdf').click();
+    await page.locator('#toggleSplitView').click();
+    const left = page.locator('.splitLeft');
+    const rightPane = page.locator('.splitRight');
+    const heading = pane => pane.locator('.pdfPaneHeading').innerText();
+    async function dragTab(name, pane, cancel = false) {
+      const source = await tab(name).boundingBox();
+      const target = await pane.locator('iframe').boundingBox();
+      await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 8 });
+      await pane.and(page.locator('.tabDropTarget')).waitFor();
+      if (cancel) await page.keyboard.press('Escape');
+      await page.mouse.up();
+      assert.equal(await page.locator('.tabDropTarget, .tabDragActive, .tabDragSource').count(), 0);
+    }
+
+    assert.equal(await heading(left), '왼쪽 · Paper A.pdf');
+    assert.equal(await heading(rightPane), '오른쪽 · 논문 B.pdf');
+    await dragTab('New PDF.pdf', left, true);
+    assert.equal(await heading(left), '왼쪽 · Paper A.pdf');
+    assert.equal(await heading(rightPane), '오른쪽 · 논문 B.pdf');
+    await dragTab('New PDF.pdf', rightPane);
+    assert.equal(await heading(left), '왼쪽 · Paper A.pdf');
+    assert.equal(await heading(rightPane), '오른쪽 · New PDF.pdf');
+    assert.equal(await tab('논문 B.pdf').count(), 1);
+    const readable = await stage('Paper A.pdf');
+    const original = await readable.evaluate(el => {
+      const viewer = el.ownerDocument.defaultView;
+      viewer.setGridViewportRows(1);
+      viewer.go(9);
+      return viewer.gridReloadState();
+    });
+    await dragTab('Paper A.pdf', rightPane);
+    await page.evaluate(() => pendingPdfLayout);
+    assert.equal(await heading(left), '왼쪽 · New PDF.pdf');
+    assert.equal(await heading(rightPane), '오른쪽 · Paper A.pdf');
+    assert.equal(await tab('Paper A.pdf').getAttribute('aria-selected'), 'true');
+    const moved = await readable.evaluate(el => el.ownerDocument.defaultView.gridReloadState());
+    assert.equal(moved.key, original.key);
+    assert.ok(Math.abs(moved.view.top - original.view.top) < 4);
+    assert.equal(await page.getByRole('tab').count(), 3);
+    console.log('Drag outside-pane tab, cancel drag, swap visible PDFs, and retain reading position passed.');
   } finally {
     await application?.close();
   }

@@ -147,6 +147,17 @@
    const leftAfter=leftPane.gridReloadState();
    if(leftAfter.key!==leftState.key||leftAfter.view.page!==leftState.view.page||Math.abs(leftAfter.view.top-leftState.view.top)>4||Math.abs(leftAfter.view.left-leftState.view.left)>4||Math.abs(leftAfter.view.scale-leftState.view.scale)>.002)throw Error('Scrolling the right PDF moved the left PDF: '+JSON.stringify({before:leftState,after:leftAfter}));
    if(leftAfter.navigation.index!==leftState.navigation.index||JSON.stringify(leftAfter.navigation.entries.map(entry=>entry.page))!==JSON.stringify(leftState.navigation.entries.map(entry=>entry.page)))throw Error('Scrolling the right PDF changed left link history');
+   const movingPanel=document.querySelector('.splitLeft'),movingTab=document.getElementById(movingPanel.getAttribute('aria-labelledby'));
+   for(const [side,opposite] of [['Right','Left'],['Left','Right']]){
+    const other=document.querySelector('.split'+side),destination=other.querySelector('iframe');
+    const center=element=>{
+     const rect=element.getBoundingClientRect();
+     return [rect.left+rect.width/2,rect.top+rect.height/2].map(value=>Math.round(value*devicePixelRatio));
+    };
+    await nativeTestStage('drag-pane-tab:'+ [...center(movingTab),...center(destination)].join(','));
+    await until(()=>movingPanel.classList.contains('split'+side));
+    if(!other.classList.contains('split'+opposite)||movingPanel.querySelector('iframe').contentWindow!==leftPane)throw Error('Dragging a tab did not swap the existing PDF panes');
+   }
    for(const [side,opposite] of [['Left','Right'],['Right','Left']]){
     const target=document.querySelector('.split'+side), other=document.querySelector('.split'+opposite);
     const original=document.getElementById(target.getAttribute('aria-labelledby'));
