@@ -163,6 +163,7 @@ async function main() {
     assert.equal(await heading(left), '왼쪽 · Paper A.pdf');
     assert.equal(await heading(rightPane), '오른쪽 · 논문 B.pdf');
     await dragTab('New PDF.pdf', rightPane);
+    await page.evaluate(() => pendingPdfLayout);
     assert.equal(await heading(left), '왼쪽 · Paper A.pdf');
     assert.equal(await heading(rightPane), '오른쪽 · New PDF.pdf');
     assert.equal(await tab('논문 B.pdf').count(), 1);
@@ -180,7 +181,8 @@ async function main() {
     assert.equal(await tab('Paper A.pdf').getAttribute('aria-selected'), 'true');
     const moved = await readable.evaluate(el => el.ownerDocument.defaultView.gridReloadState());
     assert.equal(moved.key, original.key);
-    assert.ok(Math.abs(moved.view.top - original.view.top) < 4);
+    assert.ok(Math.abs(moved.view.top - original.view.top) < 4,
+      `Reading position changed from ${original.view.top} to ${moved.view.top}`);
     assert.equal(await page.getByRole('tab').count(), 3);
     console.log('Drag outside-pane tab, cancel drag, swap visible PDFs, and retain reading position passed.');
   } finally {
