@@ -5,7 +5,7 @@ let mergeFiles = [], splitFile = null, outputs = [], outputURLs = [], activeTab 
 const MAX_BYTES = 100 * 1024 * 1024;
 const macDesktop = window.pdfGridDesktop?.platform === 'darwin';
 const tabShortcutLabel = macDesktop ? '⌘' : 'Ctrl+';
-const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.6.2' : '../viewer/?v=1.6.2';
+const GRID_VIEWER_URL = window.pdfGridDesktop ? '../?v=1.6.2-3' : '../viewer/?v=1.6.2-3';
 function addGridSteppers(view) {
   const frame = view.defaultView;
   const columns = view.getElementById('cols');
@@ -360,6 +360,7 @@ function createPdfTab(saved = null) {
   tab.panel.setAttribute('aria-labelledby', 'pdf-tab-' + id);
   tab.panel.setAttribute('aria-hidden','true'); tab.panel.dataset.active='false'; tab.panel.inert=true;
   tab.paneName.className='pdfPaneHeading'; tab.paneName.onclick=()=>activatePdfTab(tab);
+  tab.paneName.ondrop = event => void tab.frame.contentWindow?.dropPdfFiles?.(event);
   tab.item.className = 'pdfTab';
   tab.button.id = 'pdf-tab-' + id;
   tab.button.setAttribute('role', 'tab');
@@ -457,21 +458,21 @@ $('tabFiles').onchange = event => {
   void window.openPdfTabs([...event.target.files]);
   event.target.value = '';
 };
-async function openPdfFiles(files) {
+async function openPdfFiles(files, destination = null) {
   const valid = [...files].filter(file => file && (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)));
   if (!valid.length) return;
   setTab('viewer');
   for (const file of valid) {
-    const tab = activePdfTab?.hasFile ? createPdfTab() : activePdfTab || createPdfTab();
+    const tab = !destination && activePdfTab && !activePdfTab.hasFile ? activePdfTab : createPdfTab();
     tab.hasFile = true;
     tab.pendingFile = file;
     tab.setName(file.name);
-    await Promise.race([openPdfInTab(tab,file),tab.closed]);
+    await Promise.race([openPdfInTab(tab, file, destination), tab.closed]);
   }
 }
-async function openPdfInTab(tab,file) {
+async function openPdfInTab(tab, file, destination) {
   try {
-    await activatePdfTab(tab);
+    await (destination ? tab.mount() : activatePdfTab(tab));
     if (tab.removed) return;
     if (!file.pdfGridSourceID && window.pdfGridDesktop?.sourceForFile) {
       // Some Files are generated in memory and have no native path.
@@ -482,17 +483,34 @@ async function openPdfInTab(tab,file) {
     const opened = await viewer.openFile(file, null, false);
     if (tab.removed) return;
     tab.hasFile = !!opened;
-    if (!opened) { tab.setName('새 탭'); return; }
+    if (!opened) {
+      if (destination) {
+        const pane = destination.layout === splitPdfTabs ? splitPdfTabs[destination.index] : activePdfTab;
+        pane?.frame.contentWindow?.notice?.(viewer.document.getElementById('toast').textContent || 'PDF를 열지 못했습니다.');
+        closePdfTab(tab, false);
+      } else {
+        tab.setName('새 탭');
+      }
+      return;
+    }
     tab.file = file;
+    if (destination && destination.layout === splitPdfTabs) {
+      await relayoutPdfPanels(() => {
+        splitPdfTabs[destination.index] = tab;
+        activePdfTab = tab;
+      });
+    }
     if (tab === activePdfTab) viewer.document.getElementById('stage').focus({preventScroll:true});
     await window.PDFGridSession.keep(tab,file);
   } finally {
     tab.pendingFile = null;
   }
 }
-window.openPdfTabs = async files => {
+window.openPdfTabs = async (files, dropFrame) => {
+  const index = splitPdfTabs?.findIndex(tab => tab.frame.contentWindow === dropFrame) ?? -1;
+  const destination = index >= 0 ? {layout: splitPdfTabs, index} : null;
   await window.PDFGridSession.ready;
-  await openPdfFiles(files);
+  await openPdfFiles(files, destination);
 };
 
 function message(text, error = false) { $('feedback').textContent = text; $('feedback').classList.toggle('error', error); }

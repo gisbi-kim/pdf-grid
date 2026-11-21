@@ -147,6 +147,22 @@
    const leftAfter=leftPane.gridReloadState();
    if(leftAfter.key!==leftState.key||leftAfter.view.page!==leftState.view.page||Math.abs(leftAfter.view.top-leftState.view.top)>4||Math.abs(leftAfter.view.left-leftState.view.left)>4||Math.abs(leftAfter.view.scale-leftState.view.scale)>.002)throw Error('Scrolling the right PDF moved the left PDF: '+JSON.stringify({before:leftState,after:leftAfter}));
    if(leftAfter.navigation.index!==leftState.navigation.index||JSON.stringify(leftAfter.navigation.entries.map(entry=>entry.page))!==JSON.stringify(leftState.navigation.entries.map(entry=>entry.page)))throw Error('Scrolling the right PDF changed left link history');
+   for(const [side,opposite] of [['Left','Right'],['Right','Left']]){
+    const target=document.querySelector('.split'+side), other=document.querySelector('.split'+opposite);
+    const original=document.getElementById(target.getAttribute('aria-labelledby'));
+    document.getElementById(other.getAttribute('aria-labelledby')).click();
+    const view=target.querySelector('iframe').contentWindow;
+    const name='Drop-'+side+'.pdf';
+    const transfer=new view.DataTransfer();
+    transfer.items.add(new view.File([pdfBytes],name,{type:'application/pdf'}));
+    view.document.querySelector('#stage').dispatchEvent(new view.DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer}));
+    await until(()=>document.querySelector('.split'+side+' .pdfPaneHeading').textContent.endsWith(name));
+    if(document.querySelector('.split'+opposite)!==other||!original.isConnected)throw Error('Dropping a PDF changed the opposite pane or closed the previous tab');
+    const dropped=document.querySelector('.pdfTab:has([aria-selected="true"])');
+    if(dropped.querySelector('[role=tab]').textContent!==name)throw Error('Dropped PDF was not selected');
+    original.click();
+    dropped.querySelector('button[aria-label$=" 닫기"]').click();
+   }
    rightPane.document.querySelector('#stage').focus();await nativeTestStage('close-tab');
    await until(()=>!document.querySelector('#pdfTabPanels').classList.contains('splitView'));
    const beforeReopen=document.querySelectorAll('#pdfTabList [role=tab]').length;
